@@ -1,0 +1,70 @@
+const dict: Record<string, string> = {
+  "app.name": import.meta.env.VITE_APP_NAME || "My SaaS",
+
+  "nav.dashboard": "Dashboard",
+  "nav.customers": "Customers",
+  "nav.settings": "Settings",
+  "nav.signOut": "Sign out",
+
+  "auth.signIn.title": "Sign in",
+  "auth.signIn.email": "Email",
+  "auth.signIn.password": "Password",
+  "auth.signIn.submit": "Sign in",
+  "auth.signIn.toSignUp": "Create an account",
+  "auth.signUp.title": "Create account",
+  "auth.signUp.name": "Name",
+  "auth.signUp.submit": "Create",
+  "auth.signUp.toSignIn": "Sign in instead",
+  "auth.error.invalid": "Invalid credentials.",
+  "auth.error.generic": "Something failed. Try again.",
+  "auth.success.signedIn": "Signed in",
+  "auth.success.signedUp": "Account created",
+
+  "dashboard.title": "Dashboard",
+  "dashboard.stats.customers": "Customers",
+  "dashboard.stats.active": "Active",
+  "dashboard.stats.inactive": "Inactive",
+  "dashboard.stats.last7": "Last 7 days",
+  "dashboard.activity.title": "Recent activity",
+  "dashboard.activity.empty.title": "No activity yet",
+  "dashboard.activity.empty.description": "Actions in the app will show up here.",
+
+  "customers.title": "Customers",
+  "customers.add": "Add",
+  "customers.empty.title": "No customers yet",
+  "customers.empty.cta": "Add",
+  "customers.column.name": "Name",
+  "customers.column.status": "Status",
+  "customers.column.createdAt": "Created",
+  "customers.status.active": "Active",
+  "customers.status.inactive": "Inactive",
+  "customers.new.title": "Add customer",
+  "customers.detail.edit": "Edit",
+  "customers.detail.delete": "Delete",
+  "customers.detail.deleteConfirm.title": "Delete customer?",
+  "customers.detail.deleteConfirm.description":
+    "This action cannot be undone.",
+  "customers.toast.created": "Customer added",
+  "customers.toast.updated": "Changes saved",
+  "customers.toast.deleted": "Customer removed",
+
+  "settings.title": "Settings",
+  "settings.tab.profile": "Profile",
+  "settings.tab.preferences": "Preferences",
+  "settings.tab.theme": "Theme",
+  "settings.theme.light": "Light",
+  "settings.theme.dark": "Dark",
+  "settings.theme.system": "System",
+  "settings.soon.title": "Coming soon",
+
+  "common.cancel": "Cancel",
+  "common.save": "Save",
+  "common.delete": "Delete",
+  "common.retry": "Retry",
+  "common.loadError": "Failed to load. Please try again.",
+  "common.saveError": "Failed to save. Please try again.",
+};
+
+export function t(key: string): string {
+  return dict[key] ?? key;
+}

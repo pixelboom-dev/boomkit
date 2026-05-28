@@ -1,0 +1,27 @@
+{
+  "app": {
+    "name": "My SaaS",
+    "devPort": 9900,
+    "previewPort": 9901
+  },
+  "colors": {
+    "primary": {
+      "light": "oklch(0.205 0 0)",
+      "dark": "oklch(0.985 0 0)"
+    },
+    "brand": []
+  },
+  "typography": {
+    "sans": null,
+    "serif": null,
+    "mono": null,
+    "brand": null,
+    "heading": "sans",
+    "body": "sans"
+  },
+  "theme": {
+    "style": "Vega",
+    "iconLibrary": "Lucide",
+    "radius": "Medium"
+  }
+}

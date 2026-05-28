@@ -1,0 +1,22 @@
+---
+description: Apply SETUP.md structural rules when creating new routes, mocks, or env vars.
+globs:
+  - "src/routes/**/*"
+  - "src/mocks/**/*"
+  - "src/hooks/**/*"
+  - ".env*"
+  - "vite.config.ts"
+alwaysApply: false
+---
+
+# SETUP.md governs structure for new code
+
+When adding new routes, mocks, hooks, or env vars, follow [SETUP.md](../../SETUP.md):
+
+- **Routes live in `src/routes/<name>/page.tsx`**. Nested routes use folders, dynamic segments use `[id]/page.tsx` ([§5](../../SETUP.md#5-project-structure)).
+- **Never call `src/mocks/db.ts` from a screen** — go through `src/mocks/api.ts` (which adds latency + error-rate hooks).
+- **Mocks resolve via `Promise` with latency** ([§6.3](../../SETUP.md#63-fake-api)). Respect `VITE_MOCK_LATENCY_MS` and `VITE_MOCK_ERROR_RATE`.
+- **CRUD entities mirror `src/routes/customers/`** as the canonical reference ([§10.5](../../SETUP.md#105-crud-example--customers)).
+- **Dev port stays in the 9900+ range** with `strictPort: true` ([§2.1](../../SETUP.md#21-viteconfigts)).
+- **New env vars MUST be `VITE_`-prefixed** and documented in `.env.example`.
+- **Route-scoped components** go in `<route>/_components/` with a README.

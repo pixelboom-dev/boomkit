@@ -1,0 +1,39 @@
+{
+  "name": "boomkit",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "AI-native kit for fully-mocked SaaS prototypes. Auth, shell, CRUD ready in minutes. By Pixel Boom.",
+  "author": "Pixel Boom",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pixelboom-dev/boomkit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pixelboom-dev/boomkit/issues"
+  },
+  "homepage": "https://github.com/pixelboom-dev/boomkit#readme",
+  "keywords": [
+    "saas",
+    "prototype",
+    "mvp",
+    "scaffold",
+    "vite",
+    "shadcn",
+    "tailwind",
+    "ai-native",
+    "pixel-boom"
+  ],
+  "scripts": {
+    "start": "node scripts/kickoff.mjs",
+    "bootstrap": "node scripts/bootstrap.mjs",
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,30 @@
+---
+description: Apply DESIGN.md rules to every UI edit (TSX, CSS, theme).
+globs:
+  - "src/**/*.tsx"
+  - "src/**/*.ts"
+  - "src/**/*.css"
+  - "templates/src/**/*.tsx"
+  - "templates/src/**/*.ts"
+alwaysApply: true
+---
+
+# DESIGN.md is the single source of truth for UI rules
+
+When editing any file matched by the globs above, you MUST obey [DESIGN.md](../../DESIGN.md). Specifically:
+
+- **No Tailwind on Shadcn instances** for color / border / shadow / typography / radius / internal padding (§2). Page-layout classes are fine.
+- **No browser dialogs** (`alert`, `confirm`, `prompt`) — use Sonner toasts or `<AlertDialog>` (§3).
+- **Prioritize Shadcn primitives** over raw `<div>` blocks when one exists (§4).
+- **No Tailwind on icons inside `<Button>`** (§5).
+- **Every screen works in light AND dark mode** (§6).
+- **`<EmptyState>` is mandatory** for any list/grid/table that can be empty (§7).
+- **No hardcoded palettes / shadows / fonts / inline styles** for visual props (§8).
+- **No redundant subtitle / `<description>`** — skip when title is enough (§9.1, §9.2).
+- **Button labels: single infinitive verb** (§10).
+- **Feedback messages: past-tense success, direct error** (§11).
+- **Data screens handle 4 states**: loading (`<Skeleton>`), error (`<Alert variant="destructive">`), empty (`<EmptyState>`), success (§12).
+- **All user-facing strings through `t()`** (§14).
+- **Primary actions inside footer blocks** of Card / Dialog / Sheet / Drawer (§13).
+
+When unsure, re-read the relevant DESIGN.md section before writing the code.
