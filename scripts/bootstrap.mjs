@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync, rmSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -52,6 +52,7 @@ writeFileSync(join(ROOT, "package.json"), JSON.stringify({
     "lucide-react": "^0.460.0",
     "react-hook-form": "^7.53.0",
     "@hookform/resolvers": "^3.9.0",
+    recharts: "^2.13.0",
   },
   devDependencies: {
     "@types/node": "^22.0.0",
@@ -91,9 +92,16 @@ export default defineConfig({
 });
 `);
 
+// Root tsconfig MUST repeat baseUrl + paths so the Shadcn CLI can resolve `@/*`.
+// Without this, `shadcn add` creates a literal `@/components/ui/` folder instead
+// of writing into `src/components/ui/`.
 writeFileSync(join(ROOT, "tsconfig.json"), JSON.stringify({
   files: [],
   references: [{ path: "./tsconfig.app.json" }, { path: "./tsconfig.node.json" }],
+  compilerOptions: {
+    baseUrl: ".",
+    paths: { "@/*": ["./src/*"] },
+  },
 }, null, 2) + "\n");
 
 writeFileSync(join(ROOT, "tsconfig.app.json"), JSON.stringify({
@@ -270,10 +278,21 @@ writeFileSync(join(ROOT, "components.json"), JSON.stringify({
 }, null, 2) + "\n");
 
 const components = [
+  // primitives
   "button", "card", "dialog", "sheet", "alert", "alert-dialog",
   "input", "label", "select", "skeleton", "sonner", "badge", "avatar",
   "separator", "dropdown-menu", "table", "tabs", "textarea", "form",
+  // polished compositions
+  "sidebar", "chart", "breadcrumb", "collapsible", "tooltip",
 ];
+
+// Defensive: older runs of this script (before the tsconfig paths fix) created
+// a literal `@/` folder. If we find one, nuke it before re-running shadcn.
+const literalAtFolder = join(ROOT, "@");
+if (existsSync(literalAtFolder)) {
+  console.log(`  cleaning stale literal @/ folder from previous run`);
+  rmSync(literalAtFolder, { recursive: true, force: true });
+}
 
 try {
   execSync(`pnpm dlx shadcn@latest add ${components.join(" ")} --yes --overwrite`, {

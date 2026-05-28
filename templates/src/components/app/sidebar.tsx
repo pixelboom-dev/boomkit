@@ -1,38 +1,64 @@
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { LayoutDashboard, Users, Settings, Boxes } from "lucide-react";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
 import { t } from "@/lib/i18n";
 
-const items = [
+const navItems = [
   { to: "/", label: t("nav.dashboard"), icon: LayoutDashboard, end: true },
   { to: "/customers", label: t("nav.customers"), icon: Users },
   { to: "/settings", label: t("nav.settings"), icon: Settings },
 ];
 
-export function Sidebar() {
+export function AppSidebar() {
   return (
-    <nav className="flex flex-col gap-1 p-3">
-      <div className="px-2 py-3 text-sm font-semibold tracking-tight">
-        {t("app.name")}
-      </div>
-      {items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors",
-              isActive
-                ? "bg-accent text-accent-foreground"
-                : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-            )
-          }
-        >
-          <item.icon className="size-4" />
-          {item.label}
-        </NavLink>
-      ))}
-    </nav>
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" asChild>
+              <NavLink to="/">
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <Boxes className="size-4" />
+                </div>
+                <div className="flex flex-col gap-0.5 leading-none">
+                  <span className="font-semibold">{t("app.name")}</span>
+                </div>
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>{t("nav.group.app")}</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navItems.map((item) => (
+                <SidebarMenuItem key={item.to}>
+                  <SidebarMenuButton asChild tooltip={item.label}>
+                    <NavLink to={item.to} end={item.end}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      <SidebarRail />
+    </Sidebar>
   );
 }

@@ -17,7 +17,6 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("settings.title")}</h1>
       <Tabs defaultValue="theme">
         <TabsList>
           <TabsTrigger value="profile">{t("settings.tab.profile")}</TabsTrigger>
