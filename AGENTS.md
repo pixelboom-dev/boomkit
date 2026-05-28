@@ -77,6 +77,17 @@ These are **hard constraints** — violating them breaks Boomkit's contract.
 - Dev port range is 9900+ with `strictPort: true` ([SETUP.md §2.1](./SETUP.md#21-viteconfigts)).
 - No `alert()` / `confirm()` / `prompt()`. Ever. Use Sonner toasts or `<AlertDialog>` ([DESIGN.md §3](./DESIGN.md#3-native-dialogs)).
 
+## Terminal confirmations
+
+`pnpm bootstrap` runs with `CI=1` and `npm_config_yes=true` so every prompt from `pnpm dlx`, the Shadcn CLI, and any sub-tool auto-confirms. You should not see a `[y/N]` prompt during a normal run.
+
+If something **does** prompt you (e.g. a new tool that ignores those env vars), follow these rules:
+
+- **Safe / reversible** (downloading a package, overwriting a generated file, creating a directory): confirm automatically. Mention it in your hand-off summary so the user knows what was accepted.
+- **Destructive or ambiguous** (overwriting a file the user clearly edited, deleting their config, running a database migration): **stop and ask the user** via the editor's question UI before proceeding.
+
+Default to auto-confirm for the bootstrap path. The user can always inspect `git status` afterwards to review what changed.
+
 ## Fallback if bootstrap fails
 
 If `pnpm bootstrap` errors (shadcn CLI drift, network, etc.):

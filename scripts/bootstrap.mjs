@@ -28,6 +28,18 @@ const fail = (msg) => {
   process.exit(1);
 };
 
+// Auto-confirm every prompt from pnpm dlx, shadcn CLI, and anything that
+// honors CI=1 or npm_config_yes. The workshop must run end-to-end without
+// human input — manual review happens in the editor afterwards.
+const NON_INTERACTIVE_ENV = {
+  ...process.env,
+  CI: "1",
+  npm_config_yes: "true",
+  FORCE_COLOR: "1",
+};
+const runQuiet = (cmd) =>
+  execSync(cmd, { cwd: ROOT, stdio: "inherit", env: NON_INTERACTIVE_ENV });
+
 if (!existsSync(CONFIG_PATH)) {
   fail(`prototype.config.json not found.
   Run:  cp prototype.config.example.json prototype.config.json
@@ -227,7 +239,7 @@ cpSync(join(TEMPLATES, "src"), SRC, { recursive: true });
 /* ---------- 6. Install deps ---------- */
 step("6/9", "Installing dependencies (this can take a minute)");
 try {
-  execSync("pnpm install", { cwd: ROOT, stdio: "inherit" });
+  runQuiet("pnpm install");
 } catch {
   fail("pnpm install failed. Make sure pnpm is installed: npm i -g pnpm");
 }
@@ -242,16 +254,13 @@ if (existsSync(literalAt)) {
   rmSync(literalAt, { recursive: true, force: true });
 }
 
-const initCmd = `pnpm dlx shadcn@latest init --preset ${SHADCN_PRESET} --template vite --pointer --yes`;
+const initCmd = `pnpm dlx shadcn@latest init --preset ${SHADCN_PRESET} --template vite --pointer --yes --overwrite`;
 try {
-  execSync(initCmd, { cwd: ROOT, stdio: "inherit" });
+  runQuiet(initCmd);
 } catch {
   warn("shadcn init with preset failed; trying plain init as fallback");
   try {
-    execSync(`pnpm dlx shadcn@latest init --yes --base-color neutral`, {
-      cwd: ROOT,
-      stdio: "inherit",
-    });
+    runQuiet(`pnpm dlx shadcn@latest init --yes --overwrite --base-color neutral`);
   } catch {
     warn("shadcn init still failed. You may need to run it manually:");
     warn(`  ${initCmd}`);
@@ -313,10 +322,7 @@ const components = [
   "sidebar", "chart", "breadcrumb", "collapsible", "tooltip", "toggle-group",
 ];
 try {
-  execSync(`pnpm dlx shadcn@latest add ${components.join(" ")} --yes --overwrite`, {
-    cwd: ROOT,
-    stdio: "inherit",
-  });
+  runQuiet(`pnpm dlx shadcn@latest add ${components.join(" ")} --yes --overwrite`);
 } catch {
   warn(`shadcn add failed. Run manually: pnpm dlx shadcn@latest add ${components.join(" ")}`);
 }
