@@ -35,10 +35,18 @@ const NON_INTERACTIVE_ENV = {
   ...process.env,
   CI: "1",
   npm_config_yes: "true",
-  FORCE_COLOR: "1",
 };
 const runQuiet = (cmd) =>
   execSync(cmd, { cwd: ROOT, stdio: "inherit", env: NON_INTERACTIVE_ENV });
+// For shadcn CLI: even with --yes, certain setup prompts (e.g. "create
+// components.json?") still appear. Pipe `yes` to cover anything we miss.
+const runShadcn = (cmd) =>
+  execSync(`yes | ${cmd}`, {
+    cwd: ROOT,
+    stdio: ["pipe", "inherit", "inherit"],
+    env: NON_INTERACTIVE_ENV,
+    shell: "/bin/sh",
+  });
 
 if (!existsSync(CONFIG_PATH)) {
   fail(`prototype.config.json not found.
@@ -254,37 +262,15 @@ if (existsSync(literalAt)) {
   rmSync(literalAt, { recursive: true, force: true });
 }
 
-const initCmd = `pnpm dlx shadcn@latest init --preset ${SHADCN_PRESET} --template vite --pointer --yes --overwrite`;
-try {
-  runQuiet(initCmd);
-} catch {
-  warn("shadcn init with preset failed; trying plain init as fallback");
-  try {
-    runQuiet(`pnpm dlx shadcn@latest init --yes --overwrite --base-color neutral`);
-  } catch {
-    warn("shadcn init still failed. You may need to run it manually:");
-    warn(`  ${initCmd}`);
-  }
-}
+// Pre-write the three files shadcn init is *supposed* to create, so that
+// even if init silently exits without doing its job (which happens in
+// existing directories with `--template vite`), `shadcn add` still finds
+// what it needs and never prompts "create components.json?".
+// Init, when successful, will overwrite these with the preset's values.
 
-// shadcn init may have overwritten tsconfig.json without our paths — re-patch.
-const tsRoot = JSON.parse(readFileSync(join(ROOT, "tsconfig.json"), "utf8"));
-if (!tsRoot.compilerOptions?.paths?.["@/*"]) {
-  warn("re-patching tsconfig.json paths (shadcn init dropped them)");
-  tsRoot.compilerOptions = {
-    ...(tsRoot.compilerOptions ?? {}),
-    baseUrl: ".",
-    paths: { "@/*": ["./src/*"] },
-  };
-  writeFileSync(join(ROOT, "tsconfig.json"), JSON.stringify(tsRoot, null, 2) + "\n");
-}
-
-// Defensive: ensure src/lib/utils.ts exists (cn helper). shadcn init normally
-// creates it, but if init was skipped or failed we write a minimal version.
 const utilsPath = join(SRC, "lib", "utils.ts");
+mkdirSync(join(SRC, "lib"), { recursive: true });
 if (!existsSync(utilsPath)) {
-  warn("src/lib/utils.ts missing — writing minimal cn() helper");
-  mkdirSync(join(SRC, "lib"), { recursive: true });
   writeFileSync(
     utilsPath,
     `import { clsx, type ClassValue } from "clsx";
@@ -297,18 +283,176 @@ export function cn(...inputs: ClassValue[]) {
   );
 }
 
-// Defensive: ensure src/index.css exists with Tailwind + dark variant.
 const indexCss = join(SRC, "index.css");
 if (!existsSync(indexCss)) {
-  warn("src/index.css missing — writing minimal Tailwind entry");
   writeFileSync(
     indexCss,
     `@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+
+@layer base {
+  :root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.145 0 0);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.145 0 0);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --primary: oklch(0.205 0 0);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.97 0 0);
+    --secondary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.97 0 0);
+    --muted-foreground: oklch(0.556 0 0);
+    --accent: oklch(0.97 0 0);
+    --accent-foreground: oklch(0.205 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.922 0 0);
+    --input: oklch(0.922 0 0);
+    --ring: oklch(0.708 0 0);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(0.922 0 0);
+    --sidebar-ring: oklch(0.708 0 0);
+  }
+  .dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.205 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.205 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
 `,
   );
+}
+
+const componentsJson = join(ROOT, "components.json");
+if (!existsSync(componentsJson)) {
+  writeFileSync(
+    componentsJson,
+    JSON.stringify(
+      {
+        $schema: "https://ui.shadcn.com/schema.json",
+        style: "new-york",
+        rsc: false,
+        tsx: true,
+        tailwind: {
+          config: "",
+          css: "src/index.css",
+          baseColor: "neutral",
+          cssVariables: true,
+          prefix: "",
+        },
+        aliases: {
+          components: "@/components",
+          utils: "@/lib/utils",
+          ui: "@/components/ui",
+          lib: "@/lib",
+          hooks: "@/hooks",
+        },
+        iconLibrary: "lucide",
+      },
+      null,
+      2,
+    ) + "\n",
+  );
+}
+
+const initCmd = `pnpm dlx shadcn@latest init --preset ${SHADCN_PRESET} --template vite --pointer --yes --overwrite`;
+try {
+  runShadcn(initCmd);
+} catch {
+  warn("shadcn init with preset failed; trying plain init as fallback");
+  try {
+    runShadcn(`pnpm dlx shadcn@latest init --yes --overwrite --base-color neutral`);
+  } catch {
+    warn("shadcn init failed. Using the pre-written defaults — theme will be");
+    warn("the minimal Boomkit baseline, not the preset. Re-run init manually");
+    warn(`if you want the preset theme:  ${initCmd}`);
+  }
+}
+
+// shadcn init may overwrite tsconfig.json without our paths — re-patch.
+const tsRoot = JSON.parse(readFileSync(join(ROOT, "tsconfig.json"), "utf8"));
+if (!tsRoot.compilerOptions?.paths?.["@/*"]) {
+  warn("re-patching tsconfig.json paths (shadcn init dropped them)");
+  tsRoot.compilerOptions = {
+    ...(tsRoot.compilerOptions ?? {}),
+    baseUrl: ".",
+    paths: { "@/*": ["./src/*"] },
+  };
+  writeFileSync(join(ROOT, "tsconfig.json"), JSON.stringify(tsRoot, null, 2) + "\n");
 }
 
 /* ---------- 8. Shadcn components ---------- */
@@ -322,7 +466,7 @@ const components = [
   "sidebar", "chart", "breadcrumb", "collapsible", "tooltip", "toggle-group",
 ];
 try {
-  runQuiet(`pnpm dlx shadcn@latest add ${components.join(" ")} --yes --overwrite`);
+  runShadcn(`pnpm dlx shadcn@latest add ${components.join(" ")} --yes --overwrite`);
 } catch {
   warn(`shadcn add failed. Run manually: pnpm dlx shadcn@latest add ${components.join(" ")}`);
 }
