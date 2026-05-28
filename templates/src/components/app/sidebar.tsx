@@ -1,64 +1,63 @@
+import type { ComponentProps } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, Users, Settings, Boxes } from "lucide-react";
+import {
+  Boxes,
+  HelpCircle,
+  LayoutDashboard,
+  Search,
+  Settings,
+  Users,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
+  SidebarFooter,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
 } from "@/components/ui/sidebar";
+import { NavMain, type NavItem } from "./nav-main";
+import { NavSecondary, type NavSecondaryItem } from "./nav-secondary";
+import { NavUser } from "./nav-user";
 import { t } from "@/lib/i18n";
 
-const navItems = [
-  { to: "/", label: t("nav.dashboard"), icon: LayoutDashboard, end: true },
-  { to: "/customers", label: t("nav.customers"), icon: Users },
-  { to: "/settings", label: t("nav.settings"), icon: Settings },
+const navMain: NavItem[] = [
+  { title: t("nav.dashboard"), to: "/", icon: LayoutDashboard, end: true },
+  { title: t("nav.customers"), to: "/customers", icon: Users },
 ];
 
-export function AppSidebar() {
+const navSecondary: NavSecondaryItem[] = [
+  { title: t("nav.settings"), to: "/settings", icon: Settings },
+  { title: t("nav.help"), to: "/settings", icon: HelpCircle },
+  { title: t("nav.search"), to: "/settings", icon: Search },
+];
+
+export function AppSidebar(props: ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
+            <SidebarMenuButton
+              asChild
+              className="data-[slot=sidebar-menu-button]:!p-1.5"
+            >
               <NavLink to="/">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Boxes className="size-4" />
-                </div>
-                <div className="flex flex-col gap-0.5 leading-none">
-                  <span className="font-semibold">{t("app.name")}</span>
-                </div>
+                <Boxes className="!size-5" />
+                <span className="text-base font-semibold">{t("app.name")}</span>
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>{t("nav.group.app")}</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton asChild tooltip={item.label}>
-                    <NavLink to={item.to} end={item.end}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        <NavMain items={navMain} />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarRail />
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
     </Sidebar>
   );
 }

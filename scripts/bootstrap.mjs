@@ -33,6 +33,7 @@ writeFileSync(join(ROOT, "package.json"), JSON.stringify({
   scripts: {
     start: "node scripts/kickoff.mjs",
     bootstrap: "node scripts/bootstrap.mjs",
+    reset: "node scripts/reset.mjs",
     dev: "vite",
     build: "tsc -b && vite build",
     preview: "vite preview",
@@ -283,7 +284,7 @@ const components = [
   "input", "label", "select", "skeleton", "sonner", "badge", "avatar",
   "separator", "dropdown-menu", "table", "tabs", "textarea", "form",
   // polished compositions
-  "sidebar", "chart", "breadcrumb", "collapsible", "tooltip",
+  "sidebar", "chart", "breadcrumb", "collapsible", "tooltip", "toggle-group",
 ];
 
 // Defensive: older runs of this script (before the tsconfig paths fix) created

@@ -273,6 +273,7 @@ Re-running `pnpm bootstrap` after editing this file regenerates `theme.css`, `.e
 |---|---|
 | `pnpm start` | Prints kickoff instructions for the AI agent |
 | `pnpm bootstrap` | Reads `prototype.config.json` and scaffolds the app |
+| `pnpm reset` | Wipes generated state (`src/`, configs, deps) — keeps your `prototype.config.json` if you re-create it. Useful when re-running bootstrap from scratch. |
 | `pnpm dev` | Vite dev server on `:9900` |
 | `pnpm build` | Production bundle |
 | `pnpm preview` | Serve the build on `:9901` |

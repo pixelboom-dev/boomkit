@@ -16,7 +16,7 @@ export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 lg:px-6">
       <Tabs defaultValue="theme">
         <TabsList>
           <TabsTrigger value="profile">{t("settings.tab.profile")}</TabsTrigger>

@@ -22,7 +22,7 @@ export default function CustomersPage() {
   const customers = useQuery({ queryKey: ["customers"], queryFn: api.listCustomers });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 lg:px-6">
       <div className="flex items-center justify-end">
         <Button onClick={() => navigate("/customers/new")}>{t("customers.add")}</Button>
       </div>

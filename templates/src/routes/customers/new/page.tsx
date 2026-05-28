@@ -45,7 +45,7 @@ export default function CustomerNewPage() {
   }
 
   return (
-    <Card className="max-w-xl">
+    <Card className="mx-4 max-w-xl lg:mx-6">
       <form onSubmit={onSubmit}>
         <CardHeader>
           <CardTitle>{t("customers.new.title")}</CardTitle>

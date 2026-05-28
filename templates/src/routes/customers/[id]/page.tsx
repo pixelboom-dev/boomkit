@@ -78,7 +78,7 @@ export default function CustomerDetailPage() {
 
   if (customer.isLoading) {
     return (
-      <div className="max-w-xl space-y-3">
+      <div className="mx-4 max-w-xl space-y-3 lg:mx-6">
         <Skeleton className="h-8 w-1/2" />
         <Skeleton className="h-40 w-full" />
       </div>
@@ -87,7 +87,7 @@ export default function CustomerDetailPage() {
 
   if (customer.isError) {
     return (
-      <Alert variant="destructive" className="max-w-xl">
+      <Alert variant="destructive" className="mx-4 max-w-xl lg:mx-6">
         <AlertDescription className="flex items-center justify-between gap-2">
           {t("common.loadError")}
           <Button size="sm" variant="outline" onClick={() => customer.refetch()}>
@@ -99,7 +99,7 @@ export default function CustomerDetailPage() {
   }
 
   return (
-    <Card className="max-w-xl">
+    <Card className="mx-4 max-w-xl lg:mx-6">
       <CardHeader>
         <CardTitle>{customer.data?.name}</CardTitle>
       </CardHeader>

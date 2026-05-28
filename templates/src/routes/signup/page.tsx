@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -37,54 +38,64 @@ export default function SignUpPage() {
   }
 
   return (
-    <Card>
-      <form onSubmit={onSubmit}>
-        <CardHeader>
-          <CardTitle>{t("auth.signUp.title")}</CardTitle>
+    <>
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">{t("auth.signUp.title")}</CardTitle>
+          <CardDescription>{t("auth.signUp.description")}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="name">{t("auth.signUp.name")}</Label>
-            <Input
-              id="name"
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">{t("auth.signIn.email")}</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">{t("auth.signIn.password")}</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex-col gap-2">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {t("auth.signUp.submit")}
-          </Button>
-          <Button asChild variant="ghost" className="w-full">
-            <Link to="/signin">{t("auth.signUp.toSignIn")}</Link>
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+        <form onSubmit={onSubmit}>
+          <CardContent className="grid gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="name">{t("auth.signUp.name")}</Label>
+              <Input
+                id="name"
+                autoComplete="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">{t("auth.signIn.email")}</Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">{t("auth.signIn.password")}</Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+          </CardContent>
+          <CardFooter className="flex-col gap-3">
+            <Button type="submit" className="w-full" disabled={loading}>
+              {t("auth.signUp.submit")}
+            </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              {t("auth.signUp.hasAccount")}{" "}
+              <Link to="/signin" className="text-foreground underline-offset-4 hover:underline">
+                {t("auth.signUp.toSignIn")}
+              </Link>
+            </div>
+          </CardFooter>
+        </form>
+      </Card>
+      <p className="text-muted-foreground text-balance text-center text-xs">
+        {t("auth.terms")}
+      </p>
+    </>
   );
 }
