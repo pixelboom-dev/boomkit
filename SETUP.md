@@ -2,7 +2,7 @@
 
 Part of **Boomkit** by [Pixel Boom](https://pixelboom.studio).
 
-Step-by-step to bootstrap a navigable, fully-mocked SaaS prototype. Use this guide **together with [DESIGN.md](./DESIGN.md)** — DESIGN.md governs UI rules; this file governs project structure and tooling.
+Step-by-step to bootstrap a navigable, fully-mocked SaaS prototype. Use this guide **together with [DESIGN-RULES.md](./DESIGN-RULES.md)** — DESIGN-RULES.md governs UI rules; this file governs project structure and tooling.
 
 > **Goal:** a lightweight, navigable prototype with zero backend. All data is mocked in-memory. Every screen, route, and component documented and theme-ready.
 
@@ -12,7 +12,23 @@ Step-by-step to bootstrap a navigable, fully-mocked SaaS prototype. Use this gui
 
 - Node.js ≥ 20
 - pnpm ≥ 9 (or npm/yarn — examples use `pnpm`)
-- Read [DESIGN.md §0](./DESIGN.md#0-project-configuration) and fill in project configuration **before** running setup. Color tokens, fonts, style, icon library, and radius determine the theme generated in step 4.
+- Read [DESIGN-RULES.md §0](./DESIGN-RULES.md#0-project-configuration) and fill in project configuration **before** running setup. Product type, color tokens, fonts, style, icon library, and radius determine what gets scaffolded and how the theme is generated.
+
+### Product type
+
+`prototype.config.json` → `app.productType` controls which screen set the agent scaffolds in Step 5 of [AGENTS.md](./AGENTS.md):
+
+| Value | Layout | Nav | Screens |
+|-------|--------|-----|---------|
+| `saas-desktop` | Sidebar + topbar | Left sidebar | Dashboard metrics, data tables, CRUD, settings |
+| `website` | Top navbar | Horizontal links + CTA | Landing/hero, features, pricing, blog, contact, sign-in |
+| `app` | Bottom tab bar | 4 tabs, mobile-first | Onboarding flow, feed, detail, profile, account settings |
+
+The bootstrap script is identical for all three — it copies `templates/src/` and installs Shadcn. The agent adapts routes, layouts, and nav after bootstrap based on `productType`.
+
+### Theme preset
+
+If the user picks a theme preset from [awesome-design-md](https://github.com/voltagent/awesome-design-md), the agent fetches that brand's DESIGN.md and extracts color/typography/radius values automatically. The preset values populate `prototype.config.json` and DESIGN-RULES.md §0. The user can override any value afterwards.
 
 ---
 
@@ -90,12 +106,12 @@ export default defineConfig({
 pnpm dlx shadcn@latest init
 ```
 
-Answer the prompts using the values from [DESIGN.md §0.3](./DESIGN.md#03-theme-settings):
+Answer the prompts using the values from [DESIGN-RULES.md §0.3](./DESIGN-RULES.md#03-theme-settings):
 
-- **Style** → the value chosen in DESIGN.md §0.3 (Vega, Nova, Maia, etc.)
+- **Style** → the value chosen in DESIGN-RULES.md §0.3 (Vega, Nova, Maia, etc.)
 - **Base color** → matches `Primary` in §0.1
 - **Icon library** → matches §0.3
-- **CSS variables** → **yes** (mandatory — DESIGN.md §1 requires theme variables)
+- **CSS variables** → **yes** (mandatory — DESIGN-RULES.md §1 requires theme variables)
 
 Install the components the prototype will need up front:
 
@@ -107,15 +123,15 @@ pnpm dlx shadcn@latest add button card dialog sheet alert alert-dialog \
 
 ---
 
-## 4. Theme — translate DESIGN.md §0 into tokens
+## 4. Theme — translate DESIGN-RULES.md §0 into tokens
 
-All values from [DESIGN.md §0](./DESIGN.md#0-project-configuration) live in **`src/styles/theme.css`** (imported from `index.css`):
+All values from [DESIGN-RULES.md §0](./DESIGN-RULES.md#0-project-configuration) live in **`src/styles/theme.css`** (imported from `index.css`):
 
 ```css
 @layer base {
   :root {
     /* §0.1 Primary — light */
-    --primary: <value from DESIGN.md §0.1 light>;
+    --primary: <value from DESIGN-RULES.md §0.1 light>;
     --primary-foreground: <contrast>;
 
     /* §0.1 Brand (optional) */
@@ -133,7 +149,7 @@ All values from [DESIGN.md §0](./DESIGN.md#0-project-configuration) live in **`
   }
 
   .dark {
-    --primary: <value from DESIGN.md §0.1 dark>;
+    --primary: <value from DESIGN-RULES.md §0.1 dark>;
     --primary-foreground: <contrast>;
   }
 }
@@ -141,7 +157,7 @@ All values from [DESIGN.md §0](./DESIGN.md#0-project-configuration) live in **`
 
 **Rules:**
 
-- Never add a color/font/radius value outside this file. DESIGN.md §1 and §8 forbid parallel palettes.
+- Never add a color/font/radius value outside this file. DESIGN-RULES.md §1 and §8 forbid parallel palettes.
 - Adding a new token means: (1) define it here, (2) document it in `docs/theme.md` (see §9).
 
 ---
@@ -171,7 +187,7 @@ my-saas/
 │   │   └── settings/page.tsx
 │   ├── components/
 │   │   ├── ui/                   # shadcn primitives (auto-generated)
-│   │   ├── empty-state.tsx       # DESIGN.md §7 — required
+│   │   ├── empty-state.tsx       # DESIGN-RULES.md §7 — required
 │   │   └── app/                  # shared app components (sidebar, topbar)
 │   ├── mocks/                    # see §6
 │   │   ├── db.ts
@@ -179,7 +195,7 @@ my-saas/
 │   │   └── api.ts
 │   ├── lib/
 │   │   ├── utils.ts
-│   │   └── i18n.ts               # DESIGN.md §13 — t() lives here
+│   │   └── i18n.ts               # DESIGN-RULES.md §13 — t() lives here
 │   ├── hooks/
 │   ├── styles/
 │   │   └── theme.css
@@ -251,7 +267,7 @@ export const api = {
 };
 ```
 
-This forces every screen to handle all four states from [DESIGN.md §12](./DESIGN.md#12-required-states-in-data-screens).
+This forces every screen to handle all four states from [DESIGN-RULES.md §12](./DESIGN-RULES.md#12-required-states-in-data-screens).
 
 ---
 
@@ -294,7 +310,7 @@ export const router = createBrowserRouter([
 ]);
 ```
 
-`src/app/providers.tsx` wraps `<QueryClientProvider>`, `<RouterProvider>`, `<Toaster>` (Sonner — DESIGN.md §3), and the theme provider.
+`src/app/providers.tsx` wraps `<QueryClientProvider>`, `<RouterProvider>`, `<Toaster>` (Sonner — DESIGN-RULES.md §3), and the theme provider.
 
 ---
 
@@ -337,7 +353,7 @@ Index of shared components in `src/components/app/` and `src/components/`. Each 
 
 ### 9.3. Local READMEs
 
-Per [DESIGN.md §15](./DESIGN.md#15-local-component-documentation), **every** component inside any `_components/` folder must ship a `README.md`. Minimum content:
+Per [DESIGN-RULES.md §15](./DESIGN-RULES.md#15-local-component-documentation), **every** component inside any `_components/` folder must ship a `README.md`. Minimum content:
 
 ```md
 # <ComponentName>
@@ -369,14 +385,14 @@ The prototype ships with the following screens scaffolded out of the box. Build 
 `src/routes/signin/page.tsx`:
 
 - `<Card>` with `<form>` using `<Input>` + `<Label>` (email, password).
-- Submit button in `<CardFooter>` ([DESIGN.md §13](./DESIGN.md#13-action-buttons-in-components-with-footer)).
-- Errors → `toast.error()` ([DESIGN.md §11](./DESIGN.md#11-feedback-messages)).
+- Submit button in `<CardFooter>` ([DESIGN-RULES.md §13](./DESIGN-RULES.md#13-action-buttons-in-components-with-footer)).
+- Errors → `toast.error()` ([DESIGN-RULES.md §11](./DESIGN-RULES.md#11-feedback-messages)).
 - Link to `/signup`.
 - On success: redirect to `/`.
 
 `src/routes/signup/page.tsx` — same structure, extra `name` field. On success: auto-signin and redirect to `/`.
 
-> Title/description: follow [DESIGN.md §9.1/§9.2](./DESIGN.md#91-title-and-subtitle). "Sign in" needs no description; "Create account" needs no description.
+> Title/description: follow [DESIGN-RULES.md §9.1/§9.2](./DESIGN-RULES.md#91-title-and-subtitle). "Sign in" needs no description; "Create account" needs no description.
 
 ### 10.3. App shell — sidebar + topbar
 
@@ -387,7 +403,7 @@ The prototype ships with the following screens scaffolded out of the box. Build 
 - Renders `<Topbar>` with theme toggle + `<DropdownMenu>` (user avatar → Settings, Sign out).
 - `<Outlet>` for child routes.
 
-`src/components/app/sidebar.tsx` — nav items: Dashboard, Customers, Settings. Active item highlighted with theme tokens (no hardcoded colors — [DESIGN.md §8](./DESIGN.md#8-prohibited-visual-hardcode--parallel-systems)). Each item: Lucide icon (or the library chosen in DESIGN.md §0.3) + label via `t()`.
+`src/components/app/sidebar.tsx` — nav items: Dashboard, Customers, Settings. Active item highlighted with theme tokens (no hardcoded colors — [DESIGN-RULES.md §8](./DESIGN-RULES.md#8-prohibited-visual-hardcode--parallel-systems)). Each item: Lucide icon (or the library chosen in DESIGN-RULES.md §0.3) + label via `t()`.
 
 `src/components/app/topbar.tsx` — title slot, theme toggle, user menu.
 
@@ -396,7 +412,7 @@ The prototype ships with the following screens scaffolded out of the box. Build 
 `src/routes/dashboard/page.tsx`:
 
 - 3–4 `<Card>` widgets with mocked stats (total customers, active, inactive, last 7 days).
-- A "Recent activity" list — handles all four states ([DESIGN.md §12](./DESIGN.md#12-required-states-in-data-screens)).
+- A "Recent activity" list — handles all four states ([DESIGN-RULES.md §12](./DESIGN-RULES.md#12-required-states-in-data-screens)).
 - No subtitle on the page header unless it adds count/scope data.
 
 ### 10.5. CRUD example — Customers
@@ -406,9 +422,9 @@ The canonical reference CRUD. Every future entity copies this pattern.
 **List — `src/routes/customers/page.tsx`:**
 
 - `<Table>` of customers from `api.listCustomers()`.
-- Header action: `<Button>` linking to `/customers/new` (label: `Add`, infinitive — [DESIGN.md §10](./DESIGN.md#10-buttons--labels)).
+- Header action: `<Button>` linking to `/customers/new` (label: `Add`, infinitive — [DESIGN-RULES.md §10](./DESIGN-RULES.md#10-buttons--labels)).
 - Loading → `<Skeleton>` rows.
-- Empty → `<EmptyState>` with primary CTA "Add" ([DESIGN.md §7](./DESIGN.md#7-empty-state) / [§12.3](./DESIGN.md#123-empty)).
+- Empty → `<EmptyState>` with primary CTA "Add" ([DESIGN-RULES.md §7](./DESIGN-RULES.md#7-empty-state) / [§12.3](./DESIGN-RULES.md#123-empty)).
 - Error → `<Alert variant="destructive">` with retry.
 - Row click → navigates to `/customers/:id`.
 
@@ -423,14 +439,44 @@ The canonical reference CRUD. Every future entity copies this pattern.
 
 - Header: customer name, edit/delete actions.
 - Inline edit (or dialog) reusing the same zod schema.
-- **Delete** → `<AlertDialog>` ([DESIGN.md §3](./DESIGN.md#3-native-dialogs)) with footer containing `Cancel` + `Delete` ([§13](./DESIGN.md#13-action-buttons-in-components-with-footer)). On confirm: `api.deleteCustomer(id)` → toast + redirect to list.
+- **Delete** → `<AlertDialog>` ([DESIGN-RULES.md §3](./DESIGN-RULES.md#3-native-dialogs)) with footer containing `Cancel` + `Delete` ([§13](./DESIGN-RULES.md#13-action-buttons-in-components-with-footer)). On confirm: `api.deleteCustomer(id)` → toast + redirect to list.
 - Loading → `<Skeleton>`. Error → `<Alert variant="destructive">`.
 
 **Mock endpoints** in `src/mocks/api.ts`: `listCustomers`, `getCustomer`, `createCustomer`, `updateCustomer`, `deleteCustomer`. All persist to the in-memory `db` (resets on reload — documented behavior).
 
 ### 10.6. Settings (placeholder)
 
-`src/routes/settings/page.tsx` — `<Tabs>` skeleton (Profile, Preferences, Theme). Renders the theme toggle and sign-out button. Other tabs render `<EmptyState>` with "Coming soon" copy and no CTA (terminal empty state — [DESIGN.md §12.3](./DESIGN.md#123-empty)).
+`src/routes/settings/page.tsx` — `<Tabs>` skeleton (Profile, Preferences, Theme). Renders the theme toggle and sign-out button. Other tabs render `<EmptyState>` with "Coming soon" copy and no CTA (terminal empty state — [DESIGN-RULES.md §12.3](./DESIGN-RULES.md#123-empty)).
+
+---
+
+## 10b. Screen sets by product type
+
+### Website (`productType: "website"`)
+
+| Route | File | Notes |
+|-------|------|-------|
+| `/` | `routes/home/page.tsx` | Hero + features grid + pricing + social proof |
+| `/about` | `routes/about/page.tsx` | Brand story + values or team |
+| `/blog` | `routes/blog/page.tsx` | Post list with excerpt cards |
+| `/blog/:slug` | `routes/blog/[slug]/page.tsx` | Single post, prose layout |
+| `/contact` | `routes/contact/page.tsx` | Contact form → `toast.success` |
+| `/signin` | `routes/signin/page.tsx` | Auth card (no sidebar) |
+
+Layout shell: sticky top navbar with links + primary CTA. Mobile: hamburger → `<Sheet>` drawer. No session guard on public routes.
+
+### App (`productType: "app"`)
+
+| Route | File | Notes |
+|-------|------|-------|
+| `/onboarding` | `routes/onboarding/page.tsx` | 3-step card flow, progress indicator |
+| `/` | `routes/home/page.tsx` | Feed list, 4 states, pull-to-top refresh |
+| `/items/:id` | `routes/items/[id]/page.tsx` | Detail + bottom-fixed action bar |
+| `/profile` | `routes/profile/page.tsx` | Avatar + stats + edit via `<Sheet>` |
+| `/settings` | `routes/settings/page.tsx` | `<Tabs>` for Account, Notifications, Appearance |
+| `/signin` | `routes/signin/page.tsx` | Auth card |
+
+Layout shell: centered viewport container (`max-w-[430px]`, `h-svh`) that wraps the entire UI — bottom tab bar pinned at the bottom, `<main>` scrolls internally. The area outside the shell uses `bg-muted/40`. This renders a phone-sized prototype on any desktop display. Auth routes (`/signin`, `/onboarding`) use the same `430px` container. Touch targets ≥ 44 px. Session guard: redirect to `/signin` if no user.
 
 ---
 
@@ -440,9 +486,9 @@ For every new screen built **after** the §10 baseline, in order:
 
 1. **Route file** under `src/routes/<name>/page.tsx`.
 2. **Mock endpoint** in `src/mocks/api.ts` (never call `db` directly).
-3. **Four states** ([DESIGN.md §12](./DESIGN.md#12-required-states-in-data-screens)): loading (`<Skeleton>`), error (`<Alert variant="destructive">`), empty (`<EmptyState>`), success.
-4. **Copy** through `t()` ([DESIGN.md §14](./DESIGN.md#14-internationalization)). Title/description rules from [§9](./DESIGN.md#9-copy-and-screen-structure).
-5. **Light + dark mode** validated ([DESIGN.md §6](./DESIGN.md#6-dark-mode)).
+3. **Four states** ([DESIGN-RULES.md §12](./DESIGN-RULES.md#12-required-states-in-data-screens)): loading (`<Skeleton>`), error (`<Alert variant="destructive">`), empty (`<EmptyState>`), success.
+4. **Copy** through `t()` ([DESIGN-RULES.md §14](./DESIGN-RULES.md#14-internationalization)). Title/description rules from [§9](./DESIGN-RULES.md#9-copy-and-screen-structure).
+5. **Light + dark mode** validated ([DESIGN-RULES.md §6](./DESIGN-RULES.md#6-dark-mode)).
 6. **Route-scoped components** in `_components/`, each with a README ([§9.3](#93-local-readmes)).
 7. If it follows a CRUD pattern, **mirror the Customers reference** ([§10.5](#105-crud-example--customers)).
 
@@ -469,8 +515,8 @@ A prototype is "ready to share" when:
 - [ ] Dashboard renders with all four states ([§10.4](#104-dashboard-)).
 - [ ] Customers CRUD covers list, create, detail, edit, delete with `<AlertDialog>` confirmation ([§10.5](#105-crud-example--customers)).
 - [ ] All routes navigable from the sidebar.
-- [ ] No browser `alert/confirm/prompt` ([DESIGN.md §3](./DESIGN.md#3-native-dialogs)).
-- [ ] No hardcoded colors/fonts/shadows ([DESIGN.md §8](./DESIGN.md#8-prohibited-visual-hardcode--parallel-systems)).
+- [ ] No browser `alert/confirm/prompt` ([DESIGN-RULES.md §3](./DESIGN-RULES.md#3-native-dialogs)).
+- [ ] No hardcoded colors/fonts/shadows ([DESIGN-RULES.md §8](./DESIGN-RULES.md#8-prohibited-visual-hardcode--parallel-systems)).
 - [ ] Every data screen handles all four states.
 - [ ] Light and dark mode pass visual inspection.
 - [ ] `VITE_MOCK_ERROR_RATE=1` exercises every error state without crashing.
@@ -479,4 +525,4 @@ A prototype is "ready to share" when:
 
 ---
 
-*Companion to [DESIGN.md](./DESIGN.md). When this file and DESIGN.md disagree, DESIGN.md wins.*
+*Companion to [DESIGN-RULES.md](./DESIGN-RULES.md). When this file and DESIGN-RULES.md disagree, DESIGN-RULES.md wins.*

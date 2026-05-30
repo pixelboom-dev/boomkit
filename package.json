@@ -27,6 +27,7 @@
   ],
   "scripts": {
     "start": "node scripts/kickoff.mjs",
+    "setup": "node scripts/setup.mjs",
     "bootstrap": "node scripts/bootstrap.mjs",
     "reset": "node scripts/reset.mjs",
     "dev": "vite",

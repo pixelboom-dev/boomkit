@@ -56,6 +56,7 @@ if (!existsSync(CONFIG_PATH)) {
 
 const config = JSON.parse(readFileSync(CONFIG_PATH, "utf8"));
 const { app } = config;
+const productType = app.productType ?? "saas-desktop";
 
 // The Shadcn preset that ships the default Boomkit theme.
 // Documented at: pnpm dlx shadcn@latest init --preset b27GcrRo --template vite --pointer
@@ -229,6 +230,7 @@ writeFileSync(
 step("4/9", "Writing .env + .env.example");
 const envBody = `VITE_APP_NAME="${app.name}"
 VITE_APP_ENV=prototype
+VITE_PRODUCT_TYPE=${productType}
 VITE_DEV_PORT=${app.devPort}
 VITE_PREVIEW_PORT=${app.previewPort}
 VITE_MOCK_LATENCY_MS=400
@@ -492,10 +494,10 @@ writeFileSync(
   join(docsDir, "components.md"),
   `# Components index
 
-Per DESIGN.md §15, every component in a \`_components/\` folder ships a README.
+Per DESIGN-RULES.md §15, every component in a \`_components/\` folder ships a README.
 
 ## Shared
-- \`src/components/empty-state.tsx\` — required empty state (DESIGN.md §7).
+- \`src/components/empty-state.tsx\` — required empty state (DESIGN-RULES.md §7).
 - \`src/components/app/sidebar.tsx\` — AppSidebar composition (inset variant).
 - \`src/components/app/nav-main.tsx\` — primary CTA + main nav items.
 - \`src/components/app/nav-secondary.tsx\` — secondary nav pushed to \`mt-auto\`.
@@ -509,10 +511,13 @@ Per DESIGN.md §15, every component in a \`_components/\` folder ships a README.
 console.log(`
 ${GREEN}✓ Bootstrap complete.${RESET}
 
-  ${BOLD}Next:${RESET}  pnpm dev
-  ${BOLD}URL:${RESET}   http://localhost:${app.devPort}
+  ${BOLD}Product type:${RESET}  ${productType}
+  ${BOLD}Next:${RESET}          pnpm dev
+  ${BOLD}URL:${RESET}           http://localhost:${app.devPort}
 
   ${DIM}Seed login:${RESET}
     email:    demo@boomkit.dev
     password: demo
+
+  ${DIM}The agent will now scaffold screens for: ${productType}${RESET}
 `);

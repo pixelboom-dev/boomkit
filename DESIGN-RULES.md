@@ -38,6 +38,8 @@ This document defines policies for screen creation, component instantiation, cop
 
 | Setting | Value | Options |
 |---------|-------|---------|
+| **Product type** | `—` | SaaS desktop · Website · App |
+| **Theme preset** | `—` | Custom · or a brand name from [awesome-design-md](https://github.com/voltagent/awesome-design-md) |
 | **Style** | `—` | Vega · Nova · Maia · Lyra · Mira · Luma · Sera · Rhea |
 | **Icon library** | `—` | Lucide · Tabler · Hugeicons · Phosphor · Remix |
 | **Radius** | `—` | Small · Medium · Large · Full |

@@ -1,5 +1,5 @@
 ---
-description: Apply DESIGN.md rules to every UI edit (TSX, CSS, theme).
+description: Apply DESIGN-RULES.md rules to every UI edit (TSX, CSS, theme).
 globs:
   - "src/**/*.tsx"
   - "src/**/*.ts"
@@ -9,9 +9,9 @@ globs:
 alwaysApply: true
 ---
 
-# DESIGN.md is the single source of truth for UI rules
+# DESIGN-RULES.md is the single source of truth for UI rules
 
-When editing any file matched by the globs above, you MUST obey [DESIGN.md](../../DESIGN.md). Specifically:
+When editing any file matched by the globs above, you MUST obey [DESIGN-RULES.md](../../DESIGN-RULES.md). Specifically:
 
 - **No Tailwind on Shadcn instances** for color / border / shadow / typography / radius / internal padding (§2). Page-layout classes are fine.
 - **No browser dialogs** (`alert`, `confirm`, `prompt`) — use Sonner toasts or `<AlertDialog>` (§3).
@@ -27,4 +27,4 @@ When editing any file matched by the globs above, you MUST obey [DESIGN.md](../.
 - **All user-facing strings through `t()`** (§14).
 - **Primary actions inside footer blocks** of Card / Dialog / Sheet / Drawer (§13).
 
-When unsure, re-read the relevant DESIGN.md section before writing the code.
+When unsure, re-read the relevant DESIGN-RULES.md section before writing the code.

@@ -1,6 +1,7 @@
 {
   "app": {
     "name": "My SaaS",
+    "productType": "saas-desktop",
     "devPort": 9900,
     "previewPort": 9901
   },

@@ -1,16 +1,16 @@
 # Boomkit
 
-**AI-native kit for fully-mocked SaaS prototypes. Auth, shell, CRUD ready in minutes.**
+**AI-native kit for fully-mocked prototypes. Auth, shell, CRUD ready in minutes.**
 
 Boomkit is an open-source asset by [Pixel Boom](https://pixelboom.studio) — a design + technology studio that delivers MVPs at studio speed for validation and go-to-market. We built Boomkit because every prototype we ship starts from the same handful of decisions: navigation, auth, CRUD, design tokens, mocked data, the four data states. So we baked them in.
 
 Boomkit ships three things in one repo:
 
-1. A **documented UI rule set** ([DESIGN.md](./DESIGN.md)) that any agent or human can follow without guessing.
+1. A **documented UI rule set** ([DESIGN-RULES.md](./DESIGN-RULES.md)) that any agent or human can follow without guessing.
 2. A **deterministic scaffolder** ([SETUP.md](./SETUP.md) + [`scripts/bootstrap.mjs`](./scripts/bootstrap.mjs)) that turns a config file into a working Vite + Shadcn app.
-3. A **functioning baseline prototype** — auth, app shell, dashboard, full CRUD — with mocked data, realistic loading/error/empty states, and light/dark mode wired up.
+3. A **functioning baseline prototype** adapted to your product type — SaaS desktop, website, or mobile app — with mocked data, realistic loading/error/empty states, and light/dark mode wired up.
 
-Clone, run `pnpm start`, let your AI editor follow [AGENTS.md](./AGENTS.md), and you have a navigable SaaS prototype running on `http://localhost:9900`.
+Clone, run `pnpm start`, let your AI editor follow [AGENTS.md](./AGENTS.md), and you have a navigable prototype running on `http://localhost:9900`.
 
 ---
 
@@ -35,7 +35,7 @@ The result: every prototype generated from Boomkit starts at the same quality ba
 ## Who Boomkit is for
 
 - **Product designers & PMs** building click-through prototypes to validate flows without waiting on backend.
-- **Founders** mocking up SaaS ideas to share with investors, advisors, or early users.
+- **Founders** mocking up ideas to share with investors, advisors, or early users.
 - **Engineers** needing a realistic UI to integrate with before any API exists.
 - **Studios & agencies** (like us) that ship multiple MVPs a month and need a defensible baseline.
 - **Workshop facilitators** teaching prototyping — every attendee finishes with the same working baseline.
@@ -47,16 +47,42 @@ If you've ever copy-pasted yesterday's "sidebar + dashboard + table" into a new 
 
 ## What you get out of the box
 
-After `pnpm bootstrap` finishes, you have a running app with:
+The screens you get depend on the **product type** you pick during setup:
 
-- **Authentication** — sign in / sign up against an in-memory user store, session persisted to `localStorage`.
-- **App shell** — responsive sidebar (Sheet on mobile), topbar with theme toggle and user menu, route guards.
-- **Dashboard** — sample stat widgets and recent-activity list, all four data states handled.
-- **Customers CRUD** — list, create, detail, edit, delete with `<AlertDialog>` confirmation. The canonical reference pattern: every new entity mirrors this folder.
-- **Settings** — tab skeleton with theme switcher (light / dark / system).
+### SaaS desktop
+
+The default. A full desktop-first product shell with:
+
+- Sign in / sign up against an in-memory user store.
+- App shell — responsive sidebar (Sheet on mobile), topbar with theme toggle and user menu, route guards.
+- Dashboard — stat widgets and recent-activity list, all four data states.
+- Customers CRUD — list, create, detail, edit, delete with `<AlertDialog>` confirmation. The canonical reference: every new entity mirrors this folder.
+- Settings — tab skeleton with theme switcher.
+
+### Website
+
+A marketing-oriented site shell with:
+
+- Landing page — hero, features grid, social proof strip, pricing section.
+- About, Blog list, single Blog post (prose layout), Contact form.
+- Sticky top navbar with mobile hamburger → `<Sheet>` drawer.
+- Minimal sign-in card (no sidebar).
+
+### App
+
+A mobile-first app shell contained in a **430 px centered viewport** — looks like a phone on any desktop display:
+
+- 3-step onboarding flow with progress indicator.
+- Feed / home with `<Skeleton>` loading and `<EmptyState>`.
+- Detail view with a bottom-fixed action bar.
+- Profile (edit via `<Sheet>`) and Account settings (`<Tabs>`).
+- Bottom tab bar pinned at the bottom; only `<main>` scrolls.
+
+All three types share:
+
+- **Mocked async layer** with configurable latency and error rate.
+- **Sonner toasts** for feedback, `<AlertDialog>` for destructive confirmations.
 - **Light + dark mode** driven entirely by theme tokens.
-- **Mocked async layer** with configurable latency and error rate so you can exercise loading and error states deterministically.
-- **Sonner toasts** for feedback, `<AlertDialog>` for destructive confirmations (no native `alert()`).
 
 Default seed credentials:
 
@@ -67,61 +93,102 @@ password: demo
 
 ---
 
+## Setup — from clone to running prototype
+
+### 1. Clone and run setup
+
+```bash
+git clone https://github.com/pixelboom-dev/boomkit my-prototype
+cd my-prototype
+pnpm setup
+```
+
+`pnpm setup` launches an interactive CLI — no AI editor needed at this stage.
+
+### 2. Answer the CLI questions
+
+The setup CLI runs entirely in your terminal with a guided interface: arrow-key selects, text inputs, a live summary, and a spinner while the bootstrap runs.
+
+**Section 1 — Your prototype**
+
+| Question | Options | Default |
+|----------|---------|---------|
+| App name | any text | `My SaaS` |
+| Product type | SaaS desktop · Website · App | `SaaS desktop` |
+
+| Type | Layout | Use when |
+|------|--------|----------|
+| **SaaS desktop** | Sidebar + topbar | B2B dashboard, admin panel, internal tool |
+| **Website** | Top navbar | Marketing site, landing page, blog |
+| **App** | Bottom tabs, 430 px viewport | Consumer mobile app, PWA |
+
+**Section 2 — Theme**
+
+Choose between a preset or manual config:
+
+- **Preset** — type a brand name from [awesome-design-md](https://github.com/voltagent/awesome-design-md) (e.g. `linear`, `vercel`, `stripe`). The CLI fetches that brand's palette and applies it automatically. You can override any value afterwards.
+- **Manual** — set primary colors (hex or oklch), optional brand color, style (Vega · Nova · Maia · …), and radius (Small · Medium · Large · Full).
+
+> Presets only affect visual tokens (colors, radius). The behavioral rules in `DESIGN-RULES.md §1–16` always apply.
+
+**Section 3 — Confirm and run**
+
+The CLI shows a summary box and asks for confirmation. On confirm it:
+
+1. Writes `prototype.config.json`.
+2. Updates `DESIGN-RULES.md §0` with the chosen values.
+3. Runs `pnpm bootstrap` (~2 min including install and Shadcn components).
+4. Starts `pnpm dev` and waits for the server to be ready.
+
+### 3. Hand off to the AI agent
+
+When the CLI finishes you'll see:
+
+```
+✓  Setup complete
+
+  Running at   http://localhost:9900
+  Seed login   demo@boomkit.dev / demo
+
+  Next: open this folder in your AI editor and say:
+
+    start boomkit
+```
+
+Open the folder in Cursor, Claude Code, Windsurf, or any editor that reads `AGENTS.md`. Say `start boomkit`. The agent reads `prototype.config.json` (already filled in), skips all config questions, and goes straight to scaffolding the screens for your product type.
+
+### Manual path (no AI, no CLI)
+
+```bash
+cp prototype.config.example.json prototype.config.json
+# Edit prototype.config.json — set app.productType, colors, etc.
+pnpm bootstrap
+pnpm dev
+```
+
+App runs at `http://localhost:9900`. Follow [SETUP.md §10b](./SETUP.md#10b-screen-sets-by-product-type) to build the screens manually.
+
+---
+
 ## Why Boomkit, not something else
 
-**vs. `create-vite` / `create-next-app`:** those give you an empty shell. Boomkit gives you a working SaaS with auth, navigation, and a complete CRUD reference — plus the rules to extend it consistently.
+**vs. `create-vite` / `create-next-app`:** those give you an empty shell. Boomkit gives you a working product with auth, navigation, and a complete CRUD reference — plus the rules to extend it consistently.
 
 **vs. Shadcn examples / dashboard templates:** those are demos you copy-paste from. Boomkit is a *scaffold pipeline* — config-driven, agent-orchestrated, with the design rules versioned alongside the code.
 
 **vs. v0 / Lovable / Bolt:** those generate one-off screens with no shared spec. Boomkit produces deterministic baselines and lets agents *follow rules* across edits, not just regenerate every time.
 
-**vs. internal "blank repo" templates:** those rot. Boomkit's rules in `DESIGN.md` are auto-attached via Cursor rules on every TSX edit, and the bootstrap regenerates from a single config — drift is structurally harder.
+**vs. internal "blank repo" templates:** those rot. Boomkit's rules in `DESIGN-RULES.md` are auto-attached via Cursor rules on every TSX edit, and the bootstrap regenerates from a single config — drift is structurally harder.
 
 **Concrete properties:**
 
 - **AI-native by design.** [`AGENTS.md`](./AGENTS.md) is the agent playbook. Works with Cursor, Claude Code, Windsurf, and any tool that reads `AGENTS.md`.
+- **Product-type aware.** One kit, three scaffolding targets: SaaS desktop, website, or mobile app.
+- **Theme-preset ready.** 73+ brand-inspired palettes from [awesome-design-md](https://github.com/voltagent/awesome-design-md) apply in seconds.
 - **Deterministic baseline.** Templates are copied verbatim — workshop attendees and studio teams end up with identical working code, regardless of which model their editor uses.
 - **Manual escape hatch.** `cp prototype.config.example.json prototype.config.json && pnpm bootstrap` works without any AI.
-- **Portable rule set.** The DESIGN.md / SETUP.md / AGENTS.md trio can be lifted into any existing project.
+- **Portable rule set.** The `DESIGN-RULES.md` / `SETUP.md` / `AGENTS.md` trio can be lifted into any existing project.
 - **Port-safe.** Dev server defaults to `:9900` with `strictPort: true` — never collides with `:3000` / `:5173` / `:8080` quietly.
-
----
-
-## Quick start
-
-### With an AI editor (recommended)
-
-```bash
-git clone https://github.com/pixelboom-dev/boomkit my-prototype
-cd my-prototype
-pnpm start
-```
-
-Then open the folder in Cursor / Claude Code / Windsurf / etc. and tell the agent:
-
-> start boomkit
-
-The agent reads [`AGENTS.md`](./AGENTS.md) and walks you through:
-
-1. Six config questions (app name, primary colors, brand color, style, radius — all with defaults)
-2. Writes `prototype.config.json` and updates `DESIGN.md` §0
-3. Runs `pnpm bootstrap`
-4. Starts the dev server
-
-Total time: ~3–5 minutes including install.
-
-### Manual path (no AI)
-
-```bash
-git clone https://github.com/pixelboom-dev/boomkit my-prototype
-cd my-prototype
-cp prototype.config.example.json prototype.config.json
-# Edit prototype.config.json — change app name, colors, etc.
-pnpm bootstrap
-pnpm dev
-```
-
-App available at `http://localhost:9900`.
 
 ---
 
@@ -130,28 +197,16 @@ App available at `http://localhost:9900`.
 ```
 ┌──────────────────────┐    ┌────────────────────────┐    ┌─────────────────────┐
 │  prototype.config    │───▶│   scripts/bootstrap    │───▶│   Running Vite app  │
-│  .json (your input)  │    │   .mjs (8 steps)       │    │   on :9900          │
+│  .json (your input)  │    │   .mjs (9 steps)       │    │   on :9900          │
 └──────────────────────┘    └────────────────────────┘    └─────────────────────┘
-                                       │
-                                       ▼
-                            ┌──────────────────────┐
-                            │  templates/src/      │
-                            │  (baseline screens)  │
-                            └──────────────────────┘
+         │                             │
+         │ productType                 ▼
+         │                  ┌──────────────────────┐
+         └─────────────────▶│  templates/src/      │
+           (agent adapts    │  (baseline screens)  │
+            routes after    └──────────────────────┘
+            bootstrap)
 ```
-
-The bootstrap script:
-
-1. Writes a full `package.json` with all runtime + dev dependencies.
-2. Writes Vite, TypeScript, and `index.html` configs.
-3. Writes `.env` / `.env.example` with mock-layer knobs.
-4. Copies `templates/src/` into `src/`.
-5. Generates `src/styles/theme.css` from your config (primary colors, brand colors, radius, fonts).
-6. Generates `docs/theme.md` and `docs/components.md` scaffolds.
-7. Runs `pnpm install`.
-8. Runs `pnpm dlx shadcn@latest add` for the ~19 primitives the templates depend on.
-
-Templates obey every rule in `DESIGN.md` — primary actions live in footer slots, descriptions are omitted when titles are self-explanatory, all strings flow through `t()`, no hardcoded colors anywhere.
 
 ---
 
@@ -187,65 +242,20 @@ VITE_MOCK_LATENCY_MS=400   # artificial latency for every call
 VITE_MOCK_ERROR_RATE=0     # 0 to 1 — random failure rate
 ```
 
-Setting `VITE_MOCK_ERROR_RATE=1` triggers every error state in the app, which is how you verify error handling end-to-end before shipping the prototype.
+Setting `VITE_MOCK_ERROR_RATE=1` triggers every error state in the app — the cleanest way to verify error handling before sharing the prototype.
 
-### Project structure (after bootstrap)
+### Configuration schema
 
-```
-my-prototype/
-├── DESIGN.md                          # UI rules (read before edits)
-├── SETUP.md                           # scaffold reference
-├── AGENTS.md                          # agent playbook
-├── prototype.config.json              # your config
-├── package.json
-├── vite.config.ts
-├── components.json                    # Shadcn config
-├── docs/
-│   ├── theme.md                       # token reference
-│   └── components.md                  # component index
-├── templates/                         # untouched — re-runnable bootstrap
-├── scripts/
-│   ├── kickoff.mjs
-│   └── bootstrap.mjs
-└── src/
-    ├── main.tsx
-    ├── index.css
-    ├── styles/theme.css               # generated from prototype.config.json
-    ├── app/                           # router + providers
-    ├── routes/
-    │   ├── _layout.tsx                # app shell (guarded)
-    │   ├── _auth-layout.tsx           # auth shell
-    │   ├── signin/page.tsx
-    │   ├── signup/page.tsx
-    │   ├── dashboard/page.tsx
-    │   ├── customers/                 # canonical CRUD reference
-    │   │   ├── page.tsx               # list
-    │   │   ├── new/page.tsx           # create
-    │   │   └── [id]/page.tsx          # detail + edit + delete
-    │   └── settings/page.tsx
-    ├── components/
-    │   ├── ui/                        # Shadcn primitives
-    │   ├── empty-state.tsx            # required, per DESIGN.md §7
-    │   └── app/                       # sidebar, topbar, theme provider/toggle
-    ├── hooks/
-    │   └── use-session.ts             # zustand + localStorage
-    ├── lib/
-    │   ├── i18n.ts                    # t() dictionary
-    │   └── utils.ts                   # cn() etc.
-    └── mocks/
-        ├── db.ts
-        ├── api.ts
-        ├── auth.ts
-        └── fixtures/
-```
-
-### Configuration
-
-Everything project-specific is captured in `prototype.config.json`:
+Everything project-specific lives in `prototype.config.json`:
 
 ```json
 {
-  "app": { "name": "My SaaS", "devPort": 9900, "previewPort": 9901 },
+  "app": {
+    "name": "My SaaS",
+    "productType": "saas-desktop",
+    "devPort": 9900,
+    "previewPort": 9901
+  },
   "colors": {
     "primary": {
       "light": "oklch(0.205 0 0)",
@@ -265,15 +275,60 @@ Everything project-specific is captured in `prototype.config.json`:
 }
 ```
 
-Re-running `pnpm bootstrap` after editing this file regenerates `theme.css`, `.env`, `vite.config.ts`, and `index.html`. Source files in `src/routes/`, `src/components/`, etc. are **not** overwritten — the bootstrap is safe to re-run.
+`productType` accepts `"saas-desktop"`, `"website"`, or `"app"`.
+
+Re-running `pnpm bootstrap` after editing this file regenerates configs and `.env`. Source files in `src/routes/`, `src/components/`, etc. are **not** overwritten — the bootstrap is safe to re-run.
+
+### Project structure (after bootstrap)
+
+```
+my-prototype/
+├── DESIGN-RULES.md            # UI behavioral rules (agent reads on every edit)
+├── SETUP.md                   # scaffold reference
+├── AGENTS.md                  # agent playbook
+├── prototype.config.json      # your config (name, productType, colors, theme)
+├── package.json
+├── vite.config.ts
+├── components.json            # Shadcn config
+├── docs/
+│   ├── theme.md               # token reference
+│   └── components.md          # component index
+├── templates/                 # untouched source — re-runnable bootstrap
+├── scripts/
+│   ├── kickoff.mjs
+│   └── bootstrap.mjs
+└── src/
+    ├── main.tsx
+    ├── index.css
+    ├── app/                   # router + providers
+    ├── routes/
+    │   ├── _layout.tsx        # shell (varies by productType)
+    │   ├── _auth-layout.tsx   # auth shell
+    │   └── ...                # screens vary by productType
+    ├── components/
+    │   ├── ui/                # Shadcn primitives
+    │   ├── empty-state.tsx    # required, per DESIGN-RULES.md §7
+    │   └── app/               # sidebar / navbar / tab bar (varies by productType)
+    ├── hooks/
+    │   └── use-session.ts     # zustand + localStorage
+    ├── lib/
+    │   ├── i18n.ts            # t() dictionary
+    │   └── utils.ts           # cn() etc.
+    └── mocks/
+        ├── db.ts
+        ├── api.ts
+        ├── auth.ts
+        └── fixtures/
+```
 
 ### Scripts
 
 | Command | What it does |
 |---|---|
-| `pnpm start` | Prints kickoff instructions for the AI agent |
+| `pnpm start` | Prints quick-start instructions |
+| `pnpm setup` | Interactive CLI — config questions, bootstrap, dev server |
 | `pnpm bootstrap` | Reads `prototype.config.json` and scaffolds the app |
-| `pnpm reset` | Wipes generated state (`src/`, configs, deps) — keeps your `prototype.config.json` if you re-create it. Useful when re-running bootstrap from scratch. |
+| `pnpm reset` | Wipes generated state (`src/`, configs, deps) — keeps `prototype.config.json`. Useful when re-running bootstrap from scratch. |
 | `pnpm dev` | Vite dev server on `:9900` |
 | `pnpm build` | Production bundle |
 | `pnpm preview` | Serve the build on `:9901` |
@@ -287,7 +342,11 @@ Re-running `pnpm bootstrap` after editing this file regenerates `theme.css`, `.e
 
 Edit `prototype.config.json`, re-run `pnpm bootstrap`. Theme CSS regenerates from the config.
 
-If you want to tweak more advanced tokens (`--accent`, `--muted`, etc.), edit `src/styles/theme.css` directly and document the change in `docs/theme.md`.
+For advanced token overrides (`--accent`, `--muted`, etc.), edit `src/index.css` directly and document the change in `docs/theme.md`.
+
+### Apply a theme preset
+
+During setup, type any brand name from [awesome-design-md](https://github.com/voltagent/awesome-design-md). The agent fetches that brand's `DESIGN.md` and applies its color/typography/radius values into `prototype.config.json` and `DESIGN-RULES.md §0`. The behavioral rules in `DESIGN-RULES.md §1–16` are never affected by presets.
 
 ### Add a new entity (CRUD)
 
@@ -297,7 +356,7 @@ Mirror `src/routes/customers/`:
 2. Register the collection on `db` (`src/mocks/db.ts`).
 3. Add CRUD methods on `api` (`src/mocks/api.ts`).
 4. Copy `src/routes/customers/` to `src/routes/<entity>/` and rename.
-5. Add the route to `src/app/router.tsx` and the sidebar nav item.
+5. Add the route to `src/app/router.tsx` and the nav (sidebar / navbar / tab bar depending on product type).
 
 See [SETUP.md §11](./SETUP.md#11-building-new-screens--the-checklist) for the full per-screen checklist.
 
@@ -307,13 +366,13 @@ Change `theme.iconLibrary` in `prototype.config.json` to `Tabler`, `Hugeicons`, 
 
 ### Use Boomkit as a rule pack only
 
-You don't need the scaffolder to benefit from the rules. Copy `DESIGN.md`, `SETUP.md`, and `.cursor/rules/` into any existing Vite + Shadcn project and the agent will follow the same rules on edits.
+You don't need the scaffolder to benefit from the rules. Copy `DESIGN-RULES.md`, `SETUP.md`, and `.cursor/rules/` into any existing Vite + Shadcn project and the agent will follow the same rules on edits.
 
 ---
 
 ## Design rules at a glance
 
-Full spec in [DESIGN.md](./DESIGN.md). The non-negotiables:
+Full spec in [DESIGN-RULES.md](./DESIGN-RULES.md). The non-negotiables:
 
 - Primary actions live in footer blocks (`CardFooter`, `DialogFooter`, etc.) — never inside content areas.
 - `<description>` after a title is only used when the title is genuinely insufficient.
@@ -323,7 +382,7 @@ Full spec in [DESIGN.md](./DESIGN.md). The non-negotiables:
 - All user-facing strings go through `t()`.
 - Light + dark mode must work on every screen.
 
-These rules are enforced via `.cursor/rules/design-md.mdc`, which Cursor auto-attaches to every TSX edit. Claude Code reads the same rules from `AGENTS.md` and `DESIGN.md` directly.
+These rules live in `DESIGN-RULES.md` and are enforced via `.cursor/rules/design-md.mdc` (auto-attached to every TSX edit in Cursor). Claude Code reads the same rules from `AGENTS.md` and `DESIGN-RULES.md` directly.
 
 ---
 
@@ -352,7 +411,7 @@ Pull requests welcome — especially:
 - Vendored Shadcn components
 - Translations of the `t()` dictionary
 
-Before opening a PR, read [DESIGN.md](./DESIGN.md) and verify your changes don't violate any rule.
+Before opening a PR, read [DESIGN-RULES.md](./DESIGN-RULES.md) and verify your changes don't violate any rule.
 
 ---
 
