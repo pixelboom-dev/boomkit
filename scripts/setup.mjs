@@ -1260,20 +1260,21 @@ async function main() {
   patchDesignRules(config);
   success("prototype.config.json written");
 
-  // Bootstrap
-  process.stdout.write("\n");
-  const bSpin = spinner("Running pnpm bootstrap…");
+  // Bootstrap — show output so user sees progress (install + shadcn can take 2-3 min)
+  process.stdout.write(`\n${A.dim}──────────────────────────────────────────────────${A.reset}\n`);
+  process.stdout.write(`${A.bold}▸ Running pnpm bootstrap${A.reset}  ${A.dim}(this may take a few minutes…)${A.reset}\n`);
+  process.stdout.write(`${A.dim}──────────────────────────────────────────────────${A.reset}\n\n`);
   try {
     execSync("pnpm bootstrap", {
-      cwd: ROOT, stdio: "pipe",
-      env: { ...process.env, CI: "1", npm_config_yes: "true", FORCE_COLOR: "0" },
+      cwd: ROOT, stdio: "inherit",
+      env: { ...process.env, CI: "1", npm_config_yes: "true", FORCE_COLOR: "1" },
     });
-    bSpin.succeed("Bootstrap complete");
   } catch (e) {
-    bSpin.fail("Bootstrap failed");
-    process.stdout.write(`${A.dim}${e.stderr?.toString() ?? e.message}${A.reset}\n`);
-    die("Fix the error above and re-run pnpm bootstrap manually.");
+    process.stdout.write(`\n${A.red}✗${A.reset}  Bootstrap failed.\n`);
+    die("Fix the error above and re-run  pnpm bootstrap  manually.");
   }
+  process.stdout.write(`\n${A.dim}──────────────────────────────────────────────────${A.reset}\n`);
+  success("Bootstrap complete");
 
   const SRC = join(ROOT, "src");
 
