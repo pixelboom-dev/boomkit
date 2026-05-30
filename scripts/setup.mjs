@@ -206,7 +206,7 @@ const fail    = (msg) => { process.stdout.write(`\n  ${c(A.red, "✗")}  ${c(A.r
 // ─── FETCH PRESET ─────────────────────────────────────────────────────────────
 
 function fetchPreset(brand) {
-  const url = `https://raw.githubusercontent.com/voltagent/awesome-design-md/main/${brand}/DESIGN.md`;
+  const url = `https://raw.githubusercontent.com/voltagent/awesome-design-md/main/design-md/${brand}/DESIGN.md`;
   return new Promise((resolve, reject) => {
     httpsGet(url, (res) => {
       if (res.statusCode === 404) return reject(new Error("brand not found"));
