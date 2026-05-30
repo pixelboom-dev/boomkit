@@ -295,38 +295,572 @@ function applyTheme(config, tokens, srcDir) {
 // ─── PRODUCT-TYPE SCAFFOLDING ──────────────────────────────────────────────────
 
 function scaffoldProductType(productType, config, srcDir) {
-  if (productType === "saas-desktop") return; // templates already correct
-
   const appName = config.app.name;
 
-  if (productType === "app") scaffoldApp(appName, srcDir);
-  if (productType === "website") scaffoldWebsite(appName, srcDir);
+  if (productType === "saas-desktop") scaffoldSaas(srcDir);
+  if (productType === "website")      scaffoldWebsite(appName, config.app.description, srcDir);
+  if (productType === "app")          scaffoldApp(appName, srcDir);
 }
 
-// ── App scaffolding ───────────────────────────────────────────────────────────
+// ── SaaS scaffold ─────────────────────────────────────────────────────────────
 
-function scaffoldApp(appName, srcDir) {
-  writeFileSync(join(srcDir, "routes/_layout.tsx"), `import { Navigate, NavLink, Outlet } from "react-router-dom";
-import { Home, Search, Bell, User } from "lucide-react";
-import { useSession } from "@/hooks/use-session";
+function scaffoldSaas(srcDir) {
+  // Customers: single page with Sheet drawer for create + edit
+  writeFileSync(join(srcDir, "routes/customers/page.tsx"), `import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Pencil, Trash2, Users } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { EmptyState } from "@/components/empty-state";
+import {
+  Table, TableBody, TableCell,
+  TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Sheet, SheetContent, SheetHeader,
+  SheetTitle, SheetFooter,
+} from "@/components/ui/sheet";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Form, FormControl, FormField,
+  FormItem, FormLabel, FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select, SelectContent, SelectItem,
+  SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { api } from "@/mocks/api";
+import type { Customer } from "@/mocks/db";
+import { t } from "@/lib/i18n";
 
-const TABS = [
-  { to: "/",            icon: Home,   label: "Home",    end: true },
-  { to: "/search",      icon: Search, label: "Search",  end: false },
-  { to: "/alerts",      icon: Bell,   label: "Alerts",  end: false },
-  { to: "/profile",     icon: User,   label: "Profile", end: false },
+const schema = z.object({
+  name:   z.string().min(1, "Name is required"),
+  status: z.enum(["active", "inactive"]),
+});
+type FormValues = z.infer<typeof schema>;
+
+export default function CustomersPage() {
+  const qc = useQueryClient();
+  const [drawerOpen,      setDrawerOpen]      = useState(false);
+  const [editing,         setEditing]         = useState<Customer | null>(null);
+  const [deletingId,      setDeletingId]      = useState<string | null>(null);
+
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["customers"],
+    queryFn:  api.listCustomers,
+  });
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { name: "", status: "active" },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (values: FormValues) => api.createCustomer(values),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      toast.success(t("customers.toast.created"));
+      closeDrawer();
+    },
+    onError: () => toast.error(t("common.saveError")),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, values }: { id: string; values: FormValues }) =>
+      api.updateCustomer(id, values),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      toast.success(t("customers.toast.updated"));
+      closeDrawer();
+    },
+    onError: () => toast.error(t("common.saveError")),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.deleteCustomer(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      toast.success(t("customers.toast.deleted"));
+      setDeletingId(null);
+    },
+    onError: () => toast.error(t("common.saveError")),
+  });
+
+  function openCreate() {
+    setEditing(null);
+    form.reset({ name: "", status: "active" });
+    setDrawerOpen(true);
+  }
+
+  function openEdit(customer: Customer) {
+    setEditing(customer);
+    form.reset({ name: customer.name, status: customer.status });
+    setDrawerOpen(true);
+  }
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+    setEditing(null);
+    form.reset();
+  }
+
+  function onSubmit(values: FormValues) {
+    if (editing) updateMutation.mutate({ id: editing.id, values });
+    else         createMutation.mutate(values);
+  }
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+
+  return (
+    <div className="space-y-6 px-4 lg:px-6">
+      <div className="flex items-center justify-end">
+        <Button onClick={openCreate}>{t("customers.add")}</Button>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+        </div>
+      ) : isError ? (
+        <Alert variant="destructive">
+          <AlertDescription className="flex items-center justify-between gap-2">
+            {t("common.loadError")}
+            <Button size="sm" variant="outline" onClick={() => refetch()}>{t("common.retry")}</Button>
+          </AlertDescription>
+        </Alert>
+      ) : !data?.length ? (
+        <EmptyState icon={Users} title={t("customers.empty.title")}
+          action={{ label: t("customers.empty.cta"), onClick: openCreate }} />
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("customers.column.name")}</TableHead>
+                <TableHead>{t("customers.column.status")}</TableHead>
+                <TableHead>{t("customers.column.createdAt")}</TableHead>
+                <TableHead className="w-[80px]" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((c) => (
+                <TableRow key={c.id}>
+                  <TableCell className="font-medium">{c.name}</TableCell>
+                  <TableCell>
+                    <Badge variant={c.status === "active" ? "default" : "secondary"}>
+                      {t(\`customers.status.\${c.status}\`)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{c.createdAt}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(c)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button size="icon" variant="ghost"
+                        onClick={() => setDeletingId(c.id)}
+                        className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Create / Edit drawer */}
+      <Sheet open={drawerOpen} onOpenChange={(open) => { if (!open) closeDrawer(); }}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>
+              {editing ? t("customers.detail.edit") : t("customers.new.title")}
+            </SheetTitle>
+          </SheetHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col gap-4 px-4 py-6">
+              <FormField control={form.control} name="name" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("customers.column.name")}</FormLabel>
+                  <FormControl><Input placeholder="Acme Inc." {...field} /></FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <FormField control={form.control} name="status" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("customers.column.status")}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="active">{t("customers.status.active")}</SelectItem>
+                      <SelectItem value="inactive">{t("customers.status.inactive")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )} />
+
+              <SheetFooter className="mt-auto">
+                <Button type="button" variant="ghost" onClick={closeDrawer}>{t("common.cancel")}</Button>
+                <Button type="submit" disabled={isSaving}>{t("common.save")}</Button>
+              </SheetFooter>
+            </form>
+          </Form>
+        </SheetContent>
+      </Sheet>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => { if (!open) setDeletingId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("customers.detail.deleteConfirm.title")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("customers.detail.deleteConfirm.description")}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingId && deleteMutation.mutate(deletingId)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {t("common.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+`);
+
+  // Slim router — no sub-routes for customers
+  writeFileSync(join(srcDir, "app/router.tsx"), `import { createBrowserRouter, Navigate } from "react-router-dom";
+import { AppLayout }  from "@/routes/_layout";
+import { AuthLayout } from "@/routes/_auth-layout";
+import SignInPage      from "@/routes/signin/page";
+import SignUpPage      from "@/routes/signup/page";
+import DashboardPage   from "@/routes/dashboard/page";
+import CustomersPage   from "@/routes/customers/page";
+import SettingsPage    from "@/routes/settings/page";
+
+export const router = createBrowserRouter([
+  {
+    element: <AuthLayout />,
+    children: [
+      { path: "/signin", element: <SignInPage /> },
+      { path: "/signup", element: <SignUpPage /> },
+    ],
+  },
+  {
+    element: <AppLayout />,
+    children: [
+      { path: "/",          element: <DashboardPage /> },
+      { path: "/customers", element: <CustomersPage /> },
+      { path: "/settings",  element: <SettingsPage /> },
+    ],
+  },
+  { path: "*", element: <Navigate to="/" replace /> },
+]);
+`);
+}
+
+// ── Website scaffold ──────────────────────────────────────────────────────────
+
+function scaffoldWebsite(appName, description, srcDir) {
+  // Layout: sticky navbar + footer wrapper
+  writeFileSync(join(srcDir, "routes/_layout.tsx"), `import { Link, NavLink, Outlet } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
+
+const NAV_LINKS = [
+  { to: "/#features", label: "Features" },
+  { to: "/#pricing",  label: "Pricing" },
+  { to: "/#about",    label: "About" },
 ];
 
 export function AppLayout() {
-  const user = useSession((s) => s.user);
+  return (
+    <div className="flex min-h-svh flex-col">
+      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 md:px-6">
+          <Link to="/" className="flex items-center gap-2 font-semibold">
+            {t("app.name")}
+          </Link>
+          <nav className="hidden items-center gap-6 text-sm md:flex">
+            {NAV_LINKS.map(({ to, label }) => (
+              <a key={to} href={to}
+                className="text-muted-foreground transition-colors hover:text-foreground">
+                {label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/signin">Sign in</Link>
+            </Button>
+            <Button asChild size="sm">
+              <Link to="/signin">Get started</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        <Outlet />
+      </main>
+
+      <footer className="border-t bg-muted/40">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-4 py-10 md:flex-row md:justify-between">
+          <p className="font-semibold">{t("app.name")}</p>
+          <nav className="flex gap-6 text-sm text-muted-foreground">
+            {NAV_LINKS.map(({ to, label }) => (
+              <a key={to} href={to} className="hover:text-foreground transition-colors">{label}</a>
+            ))}
+          </nav>
+          <p className="text-sm text-muted-foreground">
+            © {new Date().getFullYear()} {t("app.name")}
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+}
+`);
+
+  // Homepage: Hero + Features + Pricing sections
+  mkdirSync(join(srcDir, "routes/home"), { recursive: true });
+  const desc = description || "The fastest way to ship your idea.";
+  writeFileSync(join(srcDir, "routes/home/page.tsx"), `import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
+import { t } from "@/lib/i18n";
+
+const FEATURES = [
+  {
+    title: "Feature one",
+    description: "Describe the core value this feature delivers to your users.",
+  },
+  {
+    title: "Feature two",
+    description: "Keep it concrete: what problem does it solve, and how fast.",
+  },
+  {
+    title: "Feature three",
+    description: "One sentence per feature. No filler words.",
+  },
+  {
+    title: "Feature four",
+    description: "Focus on outcomes, not implementation details.",
+  },
+];
+
+const PLANS = [
+  {
+    name: "Starter",
+    price: "Free",
+    description: "Good for personal projects",
+    features: ["Up to 3 projects", "Basic analytics", "Community support"],
+    cta: "Get started",
+    highlight: false,
+  },
+  {
+    name: "Pro",
+    price: "$29",
+    period: "/mo",
+    description: "For growing teams",
+    features: ["Unlimited projects", "Advanced analytics", "Priority support", "Custom domain"],
+    cta: "Start free trial",
+    highlight: true,
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    description: "For large organisations",
+    features: ["Everything in Pro", "SSO & audit log", "SLA", "Dedicated support"],
+    cta: "Contact us",
+    highlight: false,
+  },
+];
+
+export default function HomePage() {
+  return (
+    <>
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-4 py-24 text-center md:py-32">
+        <Badge variant="secondary">Now in public beta</Badge>
+        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+          {t("app.name")}
+        </h1>
+        <p className="max-w-xl text-lg text-muted-foreground">
+          ${desc}
+        </p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button asChild size="lg"><Link to="/signin">Get started for free</Link></Button>
+          <Button asChild size="lg" variant="outline">
+            <a href="#features">See how it works</a>
+          </Button>
+        </div>
+      </section>
+
+      {/* ── Features ──────────────────────────────────────────────────────── */}
+      <section id="features" className="border-t py-20">
+        <div className="mx-auto max-w-5xl px-4 md:px-6">
+          <div className="mb-12 text-center">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Everything you need</h2>
+            <p className="mt-2 text-muted-foreground">Built for teams that move fast.</p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURES.map((f) => (
+              <Card key={f.title} className="border-0 shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">{f.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">{f.description}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ───────────────────────────────────────────────────────── */}
+      <section id="pricing" className="border-t bg-muted/40 py-20">
+        <div className="mx-auto max-w-5xl px-4 md:px-6">
+          <div className="mb-12 text-center">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Simple pricing</h2>
+            <p className="mt-2 text-muted-foreground">No hidden fees. Cancel anytime.</p>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-3">
+            {PLANS.map((plan) => (
+              <Card key={plan.name}
+                className={plan.highlight ? "border-primary shadow-md" : ""}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{plan.name}</CardTitle>
+                    {plan.highlight && <Badge>Popular</Badge>}
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold">{plan.price}</span>
+                    {plan.period && <span className="text-muted-foreground">{plan.period}</span>}
+                  </div>
+                  <CardDescription>{plan.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-center gap-2 text-sm">
+                        <Check className="h-4 w-4 text-primary" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button asChild className="w-full"
+                    variant={plan.highlight ? "default" : "outline"}>
+                    <Link to="/signin">{plan.cta}</Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+`);
+
+  writeFileSync(join(srcDir, "app/router.tsx"), `import { createBrowserRouter, Navigate } from "react-router-dom";
+import { AppLayout }  from "@/routes/_layout";
+import { AuthLayout } from "@/routes/_auth-layout";
+import SignInPage      from "@/routes/signin/page";
+import HomePage        from "@/routes/home/page";
+
+export const router = createBrowserRouter([
+  {
+    element: <AuthLayout />,
+    children: [
+      { path: "/signin", element: <SignInPage /> },
+    ],
+  },
+  {
+    element: <AppLayout />,
+    children: [
+      { path: "/", element: <HomePage /> },
+    ],
+  },
+  { path: "*", element: <Navigate to="/" replace /> },
+]);
+`);
+}
+
+// ── App scaffold ──────────────────────────────────────────────────────────────
+
+function scaffoldApp(appName, srcDir) {
+  // Layout: max-w-[430px], h-svh, NO bg outside wrapper
+  // Top navigation bar + content + bottom tab bar
+  writeFileSync(join(srcDir, "routes/_layout.tsx"), `import { Navigate, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Home, Search, Bell, User } from "lucide-react";
+import { useSession } from "@/hooks/use-session";
+import { t } from "@/lib/i18n";
+
+const TABS = [
+  { to: "/",        icon: Home,   label: "Home",    end: true  },
+  { to: "/search",  icon: Search, label: "Search",  end: false },
+  { to: "/alerts",  icon: Bell,   label: "Alerts",  end: false },
+  { to: "/profile", icon: User,   label: "Profile", end: false },
+];
+
+const ROUTE_TITLES: Record<string, string> = {
+  "/":        "Home",
+  "/search":  "Search",
+  "/alerts":  "Alerts",
+  "/profile": "Profile",
+  "/settings":"Settings",
+};
+
+export function AppLayout() {
+  const user     = useSession((s) => s.user);
+  const location = useLocation();
+
   if (!user) return <Navigate to="/signin" replace />;
 
+  const title = ROUTE_TITLES[location.pathname] ?? t("app.name");
+
   return (
-    <div className="flex min-h-svh items-start justify-center bg-muted/40">
-      <div className="relative flex h-svh w-full max-w-[430px] flex-col overflow-hidden bg-background shadow-xl">
+    <div className="flex min-h-svh items-start justify-center">
+      <div className="flex h-svh w-full max-w-[430px] flex-col overflow-hidden bg-background">
+
+        {/* Top navigation bar */}
+        <header className="flex h-12 shrink-0 items-center border-b bg-background px-4">
+          <h1 className="text-sm font-semibold">{title}</h1>
+        </header>
+
+        {/* Scrollable content */}
         <main className="flex-1 overflow-y-auto">
           <Outlet />
         </main>
+
+        {/* Bottom tab bar */}
         <nav className="flex shrink-0 border-t bg-background">
           {TABS.map(({ to, icon: Icon, label, end }) => (
             <NavLink
@@ -344,12 +878,14 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
+
       </div>
     </div>
   );
 }
 `);
 
+  // Auth layout: same 430px shell, no bg outside
   writeFileSync(join(srcDir, "routes/_auth-layout.tsx"), `import { Navigate, Outlet } from "react-router-dom";
 import { useSession } from "@/hooks/use-session";
 import { ThemeToggle } from "@/components/app/theme-toggle";
@@ -360,8 +896,8 @@ export function AuthLayout() {
   if (user) return <Navigate to="/" replace />;
 
   return (
-    <div className="flex min-h-svh items-start justify-center bg-muted/40">
-      <div className="relative flex h-svh w-full max-w-[430px] flex-col overflow-hidden bg-background shadow-xl">
+    <div className="flex min-h-svh items-start justify-center">
+      <div className="flex h-svh w-full max-w-[430px] flex-col overflow-hidden bg-background">
         <div className="absolute right-4 top-4 z-10">
           <ThemeToggle />
         </div>
@@ -375,90 +911,99 @@ export function AuthLayout() {
 }
 `);
 
+  // Home page: feed list with skeleton states
   mkdirSync(join(srcDir, "routes/home"), { recursive: true });
   writeFileSync(join(srcDir, "routes/home/page.tsx"), `import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/empty-state";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { api } from "@/mocks/api";
 import { t } from "@/lib/i18n";
 
 export default function HomePage() {
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["home-feed"],
-    queryFn: () => api.listCustomers(),
+    queryKey: ["feed"],
+    queryFn:  api.listCustomers,
   });
 
   return (
-    <div className="flex flex-col gap-0">
-      <header className="sticky top-0 z-10 border-b bg-background px-4 py-3">
-        <h1 className="text-base font-semibold">{t("nav.dashboard")}</h1>
-      </header>
-
-      <div className="flex flex-col gap-3 p-4">
-        {isLoading && Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <Skeleton className="h-10 w-10 rounded-full" />
-            <div className="flex flex-1 flex-col gap-1.5">
-              <Skeleton className="h-3.5 w-32" />
-              <Skeleton className="h-3 w-24" />
-            </div>
+    <div className="flex flex-col divide-y">
+      {isLoading && Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3">
+          <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+          <div className="flex flex-1 flex-col gap-1.5">
+            <Skeleton className="h-3.5 w-28" />
+            <Skeleton className="h-3 w-20" />
           </div>
-        ))}
+          <Skeleton className="h-5 w-14 rounded-full" />
+        </div>
+      ))}
 
-        {isError && (
+      {isError && (
+        <div className="p-4">
           <Alert variant="destructive">
             <AlertDescription className="flex items-center justify-between">
               {t("common.loadError")}
-              <Button size="sm" variant="ghost" onClick={() => refetch()}>{t("common.retry")}</Button>
+              <Button size="sm" variant="ghost" onClick={() => refetch()}>
+                {t("common.retry")}
+              </Button>
             </AlertDescription>
           </Alert>
-        )}
+        </div>
+      )}
 
-        {!isLoading && !isError && data?.length === 0 && (
-          <EmptyState
-            icon="inbox"
-            title="Nothing here yet"
-          />
-        )}
+      {!isLoading && !isError && data?.length === 0 && (
+        <div className="p-4">
+          <EmptyState title="Nothing here yet" />
+        </div>
+      )}
 
-        {!isLoading && !isError && data?.map((item) => (
-          <div key={item.id} className="flex items-center gap-3 rounded-lg p-2 hover:bg-muted/50 transition-colors">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
-              {item.name.charAt(0)}
-            </div>
-            <div className="flex flex-1 flex-col">
-              <span className="text-sm font-medium leading-tight">{item.name}</span>
-              <span className="text-xs text-muted-foreground">{item.status}</span>
-            </div>
+      {!isLoading && !isError && data?.map((item) => (
+        <div key={item.id}
+          className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50 active:bg-muted">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+            {item.name.charAt(0)}
           </div>
-        ))}
-      </div>
+          <div className="flex flex-1 flex-col min-w-0">
+            <span className="truncate text-sm font-medium">{item.name}</span>
+            <span className="text-xs text-muted-foreground">{item.createdAt}</span>
+          </div>
+          <Badge variant={item.status === "active" ? "default" : "secondary"} className="text-xs">
+            {t(\`customers.status.\${item.status}\`)}
+          </Badge>
+        </div>
+      ))}
     </div>
   );
 }
 `);
 
+  // Profile page
   mkdirSync(join(srcDir, "routes/profile"), { recursive: true });
   writeFileSync(join(srcDir, "routes/profile/page.tsx"), `import { useSession } from "@/hooks/use-session";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ChevronRight, Bell, Shield, HelpCircle } from "lucide-react";
 import { t } from "@/lib/i18n";
+
+const MENU_ITEMS = [
+  { icon: Bell,        label: "Notifications" },
+  { icon: Shield,      label: "Privacy & security" },
+  { icon: HelpCircle,  label: "Help" },
+];
 
 export default function ProfilePage() {
   const { user, signOut } = useSession();
 
   return (
     <div className="flex flex-col">
-      <header className="sticky top-0 z-10 border-b bg-background px-4 py-3">
-        <h1 className="text-base font-semibold">{t("nav.account")}</h1>
-      </header>
-
+      {/* Avatar section */}
       <div className="flex flex-col items-center gap-3 px-4 py-8">
         <Avatar className="h-20 w-20">
-          <AvatarFallback className="text-2xl">
+          <AvatarFallback className="text-2xl font-semibold">
             {user?.name?.charAt(0) ?? "?"}
           </AvatarFallback>
         </Avatar>
@@ -467,6 +1012,20 @@ export default function ProfilePage() {
           <p className="text-sm text-muted-foreground">{user?.email}</p>
         </div>
       </div>
+
+      <Separator />
+
+      {/* Menu items */}
+      <nav className="flex flex-col divide-y">
+        {MENU_ITEMS.map(({ icon: Icon, label }) => (
+          <button key={label}
+            className="flex items-center gap-3 px-4 py-3.5 text-sm transition-colors hover:bg-muted/50 active:bg-muted">
+            <Icon className="h-5 w-5 text-muted-foreground" />
+            <span className="flex-1 text-left">{label}</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </button>
+        ))}
+      </nav>
 
       <Separator />
 
@@ -481,12 +1040,12 @@ export default function ProfilePage() {
 `);
 
   writeFileSync(join(srcDir, "app/router.tsx"), `import { createBrowserRouter, Navigate } from "react-router-dom";
-import { AppLayout } from "@/routes/_layout";
+import { AppLayout }  from "@/routes/_layout";
 import { AuthLayout } from "@/routes/_auth-layout";
-import SignInPage from "@/routes/signin/page";
-import HomePage from "@/routes/home/page";
-import SettingsPage from "@/routes/settings/page";
-import ProfilePage from "@/routes/profile/page";
+import SignInPage      from "@/routes/signin/page";
+import HomePage        from "@/routes/home/page";
+import ProfilePage     from "@/routes/profile/page";
+import SettingsPage    from "@/routes/settings/page";
 
 export const router = createBrowserRouter([
   {
@@ -503,119 +1062,6 @@ export const router = createBrowserRouter([
       { path: "/settings",element: <SettingsPage /> },
       { path: "/search",  element: <Navigate to="/" replace /> },
       { path: "/alerts",  element: <Navigate to="/" replace /> },
-    ],
-  },
-  { path: "*", element: <Navigate to="/" replace /> },
-]);
-`);
-}
-
-// ── Website scaffolding ───────────────────────────────────────────────────────
-
-function scaffoldWebsite(appName, srcDir) {
-  writeFileSync(join(srcDir, "routes/_layout.tsx"), `import { Link, NavLink, Outlet } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { t } from "@/lib/i18n";
-
-const NAV = [
-  { to: "/about",   label: "About" },
-  { to: "/blog",    label: "Blog" },
-  { to: "/contact", label: "Contact" },
-];
-
-export function AppLayout() {
-  return (
-    <div className="flex min-h-svh flex-col">
-      <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-          <Link to="/" className="font-semibold">{t("app.name")}</Link>
-          <nav className="hidden items-center gap-6 text-sm md:flex">
-            {NAV.map(({ to, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground transition-colors"
-                }
-              >
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-          <Button asChild size="sm">
-            <Link to="/signin">Sign in</Link>
-          </Button>
-        </div>
-      </header>
-      <main className="flex-1">
-        <Outlet />
-      </main>
-      <footer className="border-t py-6 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} {t("app.name")}
-      </footer>
-    </div>
-  );
-}
-`);
-
-  mkdirSync(join(srcDir, "routes/home"), { recursive: true });
-  writeFileSync(join(srcDir, "routes/home/page.tsx"), `import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { t } from "@/lib/i18n";
-
-const FEATURES = [
-  { title: "Feature one",   body: "Short description of what this does and why it matters." },
-  { title: "Feature two",   body: "Short description of what this does and why it matters." },
-  { title: "Feature three", body: "Short description of what this does and why it matters." },
-];
-
-export default function HomePage() {
-  return (
-    <div className="flex flex-col">
-      {/* Hero */}
-      <section className="mx-auto flex max-w-3xl flex-col items-center gap-6 px-4 py-24 text-center">
-        <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">{t("app.name")}</h1>
-        <p className="max-w-xl text-lg text-muted-foreground">{t("app.description")}</p>
-        <div className="flex gap-3">
-          <Button asChild size="lg"><Link to="/signin">Get started</Link></Button>
-          <Button asChild size="lg" variant="outline"><Link to="/about">Learn more</Link></Button>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section className="mx-auto w-full max-w-5xl px-4 pb-24">
-        <div className="grid gap-4 sm:grid-cols-3">
-          {FEATURES.map((f) => (
-            <Card key={f.title}>
-              <CardHeader><CardTitle className="text-base">{f.title}</CardTitle></CardHeader>
-              <CardContent><p className="text-sm text-muted-foreground">{f.body}</p></CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-    </div>
-  );
-}
-`);
-
-  writeFileSync(join(srcDir, "app/router.tsx"), `import { createBrowserRouter, Navigate } from "react-router-dom";
-import { AppLayout } from "@/routes/_layout";
-import { AuthLayout } from "@/routes/_auth-layout";
-import SignInPage from "@/routes/signin/page";
-import HomePage from "@/routes/home/page";
-
-export const router = createBrowserRouter([
-  {
-    element: <AuthLayout />,
-    children: [
-      { path: "/signin", element: <SignInPage /> },
-    ],
-  },
-  {
-    element: <AppLayout />,
-    children: [
-      { path: "/", element: <HomePage /> },
     ],
   },
   { path: "*", element: <Navigate to="/" replace /> },
