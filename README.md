@@ -100,10 +100,10 @@ password: demo
 ```bash
 git clone https://github.com/pixelboom-dev/boomkit my-prototype
 cd my-prototype
-pnpm setup
+pnpm start
 ```
 
-`pnpm setup` launches an interactive CLI — no AI editor needed at this stage.
+`pnpm start` launches an interactive CLI — no AI editor needed at this stage.
 
 ### 2. Answer the CLI questions
 
@@ -325,8 +325,7 @@ my-prototype/
 
 | Command | What it does |
 |---|---|
-| `pnpm start` | Prints quick-start instructions |
-| `pnpm setup` | Interactive CLI — config questions, bootstrap, dev server |
+| `pnpm start` | Interactive setup CLI — config questions, bootstrap, dev server |
 | `pnpm bootstrap` | Reads `prototype.config.json` and scaffolds the app |
 | `pnpm reset` | Wipes generated state (`src/`, configs, deps) — keeps `prototype.config.json`. Useful when re-running bootstrap from scratch. |
 | `pnpm dev` | Vite dev server on `:9900` |
