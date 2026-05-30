@@ -186,75 +186,110 @@ function fetchPreset(brand) {
 }
 
 function extractPresetTokens(markdown) {
-  const tokens = {};
+  // ── helpers ────────────────────────────────────────────────────────────────
+  const chromaticity = (hex) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return Math.max(r, g, b) - Math.min(r, g, b); // 0 = gray, 255 = vivid
+  };
 
-  // Primary color — hex near brand/primary/accent keywords
-  const colorRe = [
-    /(?:primary|brand|accent)[^\n`]*?`(#[0-9a-fA-F]{6})`/i,
-    /`(#[0-9a-fA-F]{6})`[^\n`]*?(?:primary|brand|accent)/i,
-    // First prominent hex that isn't black/white
-    /`(#(?!(?:000000|ffffff|131313|1a1a1a|fafafa|f5f5f5)[^\w]))[0-9a-fA-F]{6}`/i,
-  ];
-  for (const re of colorRe) {
-    const m = markdown.match(re);
-    if (m) { tokens.primaryLight = m[1]; break; }
+  // collect every hex in the doc — handles `#xxxxxx` and "#xxxxxx" and plain #xxxxxx in tables
+  const allHex = [...markdown.matchAll(/(?:`|"|^|\s|:|\|)(#[0-9a-fA-F]{6})(?:`|"|$|\s|;|\|)/gm)]
+    .map((m) => m[1].toLowerCase());
+
+  // ── 1. YAML / structured format: `primary: "#5e6ad2"` ─────────────────────
+  const yamlPrimary = markdown.match(/^\s*primary:\s*["']?(#[0-9a-fA-F]{6})["']?/im);
+  const yamlCanvas  = markdown.match(/^\s*(?:canvas|background|bg):\s*["']?(#[0-9a-fA-F]{6})["']?/im);
+  const yamlSurface = markdown.match(/^\s*surface[-_]?1?:\s*["']?(#[0-9a-fA-F]{6})["']?/im);
+
+  if (yamlPrimary) {
+    return {
+      primaryLight: yamlPrimary[1],
+      background:   yamlCanvas?.[1] ?? yamlSurface?.[1] ?? null,
+    };
   }
 
-  // Background color
-  const bgM = markdown.match(/background[^\n`]*?`(#[0-9a-fA-F]{6})`/i);
-  if (bgM) tokens.background = bgM[1];
+  // ── 2. Keyword-adjacent search for prose format ───────────────────────────
+  const KEYWORDS = ["primary", "brand", "accent", "signature", "highlight", "cta"];
+  let primaryLight = null;
 
-  // Foreground / text color
-  const fgM = markdown.match(/(?:foreground|text|body)[^\n`]*?`(#[0-9a-fA-F]{6})`/i);
-  if (fgM) tokens.foreground = fgM[1];
+  for (const kw of KEYWORDS) {
+    // keyword then hex  (up to 120 chars apart)
+    const a = markdown.match(new RegExp(`${kw}[^\\n]{0,120}(?:\`|["'])(#[0-9a-fA-F]{6})(?:\`|["'])`, "i"));
+    if (a && chromaticity(a[1]) > 30) { primaryLight = a[1]; break; }
+    // hex then keyword
+    const b = markdown.match(new RegExp(`(?:\`|["'])(#[0-9a-fA-F]{6})(?:\`|["'])[^\\n]{0,120}${kw}`, "i"));
+    if (b && chromaticity(b[1]) > 30) { primaryLight = b[1]; break; }
+  }
 
-  // Radius (explicit px or rem value near the word "radius")
-  const rvM = markdown.match(/radius[^\n]*?(\d+(?:\.\d+)?(?:px|rem))/i);
-  if (rvM) tokens.radiusValue = rvM[1];
+  // ── 3. Fallback: most-chromatic hex in the doc ────────────────────────────
+  if (!primaryLight) {
+    const chromatic = allHex.filter((h) => chromaticity(h) > 40);
+    if (chromatic.length) {
+      primaryLight = chromatic.sort((a, b) => chromaticity(b) - chromaticity(a))[0];
+    }
+  }
 
-  return tokens;
+  // ── 4. Background (canvas / background keyword) ───────────────────────────
+  const bgM = markdown.match(/(?:canvas|background)[^\n]{0,60}(?:`|["'])(#[0-9a-fA-F]{6})(?:`|["'])/i);
+  const background = bgM?.[1] ?? null;
+
+  return { primaryLight, background };
 }
 
 // ─── THEME APPLICATION ────────────────────────────────────────────────────────
 
 const RADIUS_MAP = { Small: "0.25rem", Medium: "0.5rem", Large: "1rem", Full: "9999px" };
 
+/**
+ * Patch a single CSS custom property inside a CSS block string.
+ * Handles any value format (oklch, hex, rem, etc).
+ */
+function patchVar(block, name, value) {
+  // matches `--name: <anything up to ; or newline>`
+  const re = new RegExp(`(${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}:\\s*)[^;\\n}]+`);
+  return block.replace(re, `$1${value}`);
+}
+
 function applyTheme(config, tokens, srcDir) {
   const cssPath = join(srcDir, "index.css");
-  if (!existsSync(cssPath)) return;
+  if (!existsSync(cssPath)) return { applied: [] };
 
   let css = readFileSync(cssPath, "utf8");
+  const applied = [];
 
-  // Radius from config choice
-  const rv = RADIUS_MAP[config.theme.radius] ?? "0.5rem";
-  css = css.replace(/--radius:\s*[^;]+;/, `--radius: ${rv};`);
+  const primaryLight = tokens?.primaryLight ?? config.colors.primary.light;
+  const primaryDark  = config.colors.primary.dark;
+  const radiusVal    = RADIUS_MAP[config.theme.radius] ?? "0.5rem";
 
-  // Colors from preset tokens
-  if (tokens?.primaryLight) {
-    css = css.replace(/(--primary:)\s*oklch\([^)]+\);/, `$1 ${tokens.primaryLight};`);
-  }
-  if (tokens?.background) {
-    css = css.replace(/(--background:)\s*oklch\([^)]+\);/, `$1 ${tokens.background};`);
-  }
+  // ── patch :root block ─────────────────────────────────────────────────────
+  css = css.replace(/:root\s*\{[^}]+\}/s, (block) => {
+    let b = block;
+    b = patchVar(b, "--primary", primaryLight);
+    b = patchVar(b, "--radius",  radiusVal);
+    if (tokens?.background) b = patchVar(b, "--background", tokens.background);
+    return b;
+  });
+  applied.push(`--primary (light): ${primaryLight}`);
+  applied.push(`--radius: ${radiusVal}`);
+  if (tokens?.background) applied.push(`--background: ${tokens.background}`);
 
-  // Primary from manual config
-  if (!tokens?.primaryLight && config.colors.primary.light !== "oklch(0.205 0 0)") {
-    css = css.replace(/(--primary:)\s*oklch\([^)]+\);/, `$1 ${config.colors.primary.light};`);
-  }
-  // Dark mode primary
-  const darkSection = css.match(/\.dark\s*\{([^}]+)\}/s)?.[0] ?? "";
-  const patchedDark = darkSection.replace(/(--primary:)\s*oklch\([^)]+\);/, `$1 ${config.colors.primary.dark};`);
-  css = css.replace(/\.dark\s*\{[^}]+\}/s, patchedDark);
+  // ── patch .dark block ─────────────────────────────────────────────────────
+  css = css.replace(/\.dark\s*\{[^}]+\}/s, (block) => patchVar(block, "--primary", primaryDark));
+  applied.push(`--primary (dark): ${primaryDark}`);
 
-  // Brand color token
+  // ── brand color ───────────────────────────────────────────────────────────
   if (config.colors.brand?.length) {
     const brandVal = config.colors.brand[0].value;
     if (!css.includes("--brand-primary")) {
       css = css.replace("@layer base {", `@layer base {\n  :root { --brand-primary: ${brandVal}; }`);
+      applied.push(`--brand-primary: ${brandVal}`);
     }
   }
 
   writeFileSync(cssPath, css);
+  return { applied };
 }
 
 // ─── PRODUCT-TYPE SCAFFOLDING ──────────────────────────────────────────────────
@@ -717,9 +752,14 @@ async function main() {
       try {
         const markdown = await fetchPreset(brandName.toLowerCase().replace(/\s+/g, ""));
         presetTokens   = extractPresetTokens(markdown);
-        spin.succeed(`Preset applied: ${brandName}`);
-        if (presetTokens.primaryLight) { primaryLight = presetTokens.primaryLight; info(`  Primary: ${primaryLight}`); }
-        if (presetTokens.radiusValue)  { info(`  Radius value extracted: ${presetTokens.radiusValue} (mapped to nearest)`); }
+        spin.succeed(`Preset fetched: ${brandName}`);
+        if (presetTokens.primaryLight) {
+          primaryLight = presetTokens.primaryLight;
+          info(`  Primary color extracted: ${primaryLight}`);
+        } else {
+          warn(`  Could not extract a primary color — will use default. You can override below.`);
+        }
+        if (presetTokens.background) info(`  Background extracted: ${presetTokens.background}`);
         process.stdout.write("\n");
       } catch {
         spin.fail(`Preset "${brandName}" not found — using manual config instead.`);
@@ -793,8 +833,9 @@ async function main() {
 
   // Apply theme to CSS
   const tSpin = spinner("Applying theme…");
-  applyTheme(config, presetTokens, SRC);
+  const { applied } = applyTheme(config, presetTokens, SRC);
   tSpin.succeed("Theme applied to src/index.css");
+  for (const line of applied) info(`  ${line}`);
 
   // Scaffold product-type screens
   const sSpin = spinner(`Scaffolding ${productType} screens…`);
