@@ -229,6 +229,7 @@ writeFileSync(
 /* ---------- 4. .env ---------- */
 step("4/9", "Writing .env + .env.example");
 const envBody = `VITE_APP_NAME="${app.name}"
+VITE_APP_DESCRIPTION="${app.description ?? ""}"
 VITE_APP_ENV=prototype
 VITE_PRODUCT_TYPE=${productType}
 VITE_DEV_PORT=${app.devPort}
